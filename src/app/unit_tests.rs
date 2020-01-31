@@ -36,19 +36,21 @@ fn ping__live_socket_replies_with_pong() {
     let app = App::start().unwrap();
     let listener_socket = app.local_socket;
     let refcell = RefCell::<String>::new(String::new());
-    let mut input_string = Rc::<RefCell<String>>::new(refcell);
+    let alt_input_string = refcell.clone();
+    let input_string = Rc::<RefCell<String>>::new(refcell);
 
     // When
-    let sut = connect(stringly_socket, |out| {
+    let sut = connect(stringly_socket, |out| {    let alt_input_string = refcell.clone();
+
         out.send("ping").unwrap();
 
         move |msg: ws::Message| {
-            println!("Received message {:?}", msg);
+            println!("Received message {:?}", &msg);
             *input_string.borrow_mut() = msg.to_string();
             out.close(CloseCode::Normal)
         }
     }).unwrap();
 
     // Then
-    assert_eq!(*Rc::make_mut(&mut input_string), RefCell::new(String::from("pong")));
+    assert_eq!(alt_input_string, RefCell::new(String::from("pong")));
 }
