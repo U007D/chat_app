@@ -14,8 +14,8 @@ use crate::Result;
 use ws::listen;
 
 pub struct App {
-    local_socket: SocketAddr,
-    listener_thread: JoinHandle<Result<()>>,
+    pub local_socket: SocketAddr,
+    pub listener_thread: JoinHandle<Result<()>>,
 }
 
 impl App {
@@ -32,10 +32,16 @@ impl App {
         )?;
         let local_socket = SocketAddr::new(local_addr.into(), PORT);
 
+
+        dbg!(&local_socket);
         // Start listener
         let thread_builder = Builder::new();
+        println!("before thread start!");
         let listener_thread = thread_builder.spawn(move || {
-            listen(local_socket, |sender| {
+            println!("before listener!");
+
+            let result = listen(local_socket, |sender| {
+                println!("Inside listener!");
                 // The handler needs to take ownership of sender, so we use move
                 move |msg| {
                     // Handle messages received on this connection
@@ -45,8 +51,10 @@ impl App {
                     sender.send("pong".to_string())
                 }
             })
-            .map_err(Error::from)
+            .map_err(Error::from);
+            result
         })?;
+
 
         Ok(Self {
             local_socket,

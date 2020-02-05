@@ -55,7 +55,6 @@ fn ping__live_socket_replies_with_pong() {
     .unwrap();
     println!("Done");
 
-
     // Then
     assert_eq!(&*msg_string.borrow(), "pong");
 }
