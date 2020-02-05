@@ -36,7 +36,7 @@ fn ping__live_socket_replies_with_pong() {
     let stringly_socket = expected_socket.to_string();
     let app = App::start().unwrap();
     let listener_socket = app.local_socket;
-    let msg_string = RwLock::new(String::new());
+    let msg_string = RefCell::new(String::new());
     let msg_string_ref = &msg_string;
 
     // When
@@ -45,12 +45,12 @@ fn ping__live_socket_replies_with_pong() {
 
         move |msg: ws::Message| {
             println!("Received message {:?}", msg);
-            (*msg_string_ref.write().unwrap()) = msg.to_string();
+            (*msg_string_ref.borrow_mut()) = msg.to_string();
             out.close(CloseCode::Normal)
         }
     })
     .unwrap();
 
     // Then
-    assert_eq!(&*msg_string.read().unwrap(), "pong");
+    assert_eq!(&*msg_string.borrow(), "pong");
 }
