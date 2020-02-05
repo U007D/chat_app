@@ -8,6 +8,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::RwLock;
 use ws::{connect, CloseCode, Handler};
+use std::{time, thread};
 
 pub enum Message {
     Ping,
@@ -32,20 +33,20 @@ fn start__app_starts() -> Result<()> {
 #[test]
 fn ping__live_socket_replies_with_pong() {
     // Given
-    let url = "http://127.0.0.1:4444";
+    let url = "ws://127.0.0.1:4444";
     let app = App::start().unwrap();
     let listener_socket = app.local_socket;
     let msg_string = RefCell::new(String::new());
     let msg_string_ref = &msg_string;
 
     // When
-    println!("Sent ping");
+    println!("before connect");
     let sut = connect(url, |out| {
         out.send("ping").unwrap();
         println!("Sent ping");
 
         move |msg: ws::Message| {
-            println!("Sent ping");
+            println!("got message");
 
             println!("Received message {:?}", msg);
             (*msg_string_ref.borrow_mut()) = msg.to_string();
