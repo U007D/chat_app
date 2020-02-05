@@ -32,24 +32,29 @@ fn start__app_starts() -> Result<()> {
 #[test]
 fn ping__live_socket_replies_with_pong() {
     // Given
-    let expected_socket = SocketAddr::from(([127, 0, 0, 1], 4444));
-    let stringly_socket = expected_socket.to_string();
+    let url = "http://127.0.0.1:4444";
     let app = App::start().unwrap();
     let listener_socket = app.local_socket;
     let msg_string = RefCell::new(String::new());
     let msg_string_ref = &msg_string;
 
     // When
-    let sut = connect(stringly_socket, |out| {
+    println!("Sent ping");
+    let sut = connect(url, |out| {
         out.send("ping").unwrap();
+        println!("Sent ping");
 
         move |msg: ws::Message| {
+            println!("Sent ping");
+
             println!("Received message {:?}", msg);
             (*msg_string_ref.borrow_mut()) = msg.to_string();
             out.close(CloseCode::Normal)
         }
     })
     .unwrap();
+    println!("Done");
+
 
     // Then
     assert_eq!(&*msg_string.borrow(), "pong");
