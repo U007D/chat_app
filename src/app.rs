@@ -42,7 +42,7 @@ impl App {
                     println!("Server got message '{}'. ", msg);
 
                     let reply = match msg {
-                        ws::Message::Text(message) if message == "ping" => message,
+                        ws::Message::Text(message) if message == "ping" => "pong",
                         _ => "error"
                     };
 
