@@ -40,21 +40,14 @@ fn ping__live_socket_replies_with_pong() {
     let msg_string_ref = &msg_string;
 
     // When
-    println!("before connect");
     let sut = connect(url, |out| {
         out.send("ping").unwrap();
-        println!("Sent ping");
-
         move |msg: ws::Message| {
-            println!("got message");
-
-            println!("Received message {:?}", msg);
             (*msg_string_ref.borrow_mut()) = msg.to_string();
             out.close(CloseCode::Normal)
         }
     })
     .unwrap();
-    println!("Done");
 
     // Then
     assert_eq!(&*msg_string.borrow(), "pong");

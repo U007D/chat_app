@@ -32,16 +32,10 @@ impl App {
         )?;
         let local_socket = SocketAddr::new(local_addr.into(), PORT);
 
-
-        dbg!(&local_socket);
         // Start listener
         let thread_builder = Builder::new();
-        println!("before thread start!");
         let listener_thread = thread_builder.spawn(move || {
-            println!("before listener!");
-
             let result = listen(local_socket, |sender| {
-                println!("Inside listener!");
                 // The handler needs to take ownership of sender, so we use move
                 move |msg| {
                     // Handle messages received on this connection
