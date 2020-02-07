@@ -41,8 +41,13 @@ impl App {
                     // Handle messages received on this connection
                     println!("Server got message '{}'. ", msg);
 
+                    let reply = match msg {
+                        ws::Message::Text(message) if message == "ping" => message,
+                        _ => "error"
+                    };
+
                     // Use the out channel to send messages back
-                    sender.send("pong".to_string())
+                    sender.send(reply.to_string())
                 }
             })
             .map_err(Error::from);
