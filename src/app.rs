@@ -12,10 +12,19 @@ use ws;
 use crate::Error;
 use crate::Result;
 use ws::listen;
+use serde::{Serialize, Deserialize};
+use bincode;
 
 pub struct App {
     pub local_socket: SocketAddr,
     pub listener_thread: JoinHandle<Result<()>>,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+enum ChatMessage {
+    Ping,
+    Pong,
+    Error
 }
 
 impl App {
@@ -42,12 +51,14 @@ impl App {
                     println!("Server got message '{}'. ", msg);
 
                     let reply = match msg {
-                        ws::Message::Text(message) if message == "ping" => "pong",
-                        _ => "error"
+                        ws::Message::Text(message) if message == "ping" => ChatMessage::Pong,
+                        _ => ChatMessage::Error
                     };
 
+                    let serialized_reply: Vec<u8> = bincode::serialize(&reply).unwrap();
+
                     // Use the out channel to send messages back
-                    sender.send(reply.to_string())
+                    sender.send(serialized_reply)
                 }
             })
             .map_err(Error::from);

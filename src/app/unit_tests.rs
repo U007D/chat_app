@@ -36,21 +36,26 @@ fn ping__live_socket_replies_to_ping_with_pong() {
     let url = "ws://127.0.0.1:4444";
     let app = App::start().unwrap();
     let listener_socket = app.local_socket;
-    let msg_string = RefCell::new(String::new());
+    let msg_string = RefCell::new(None);
     let msg_string_ref = &msg_string;
 
     // When
     let sut = connect(url, |out| {
         out.send("ping").unwrap();
         move |msg: ws::Message| {
-            (*msg_string_ref.borrow_mut()) = msg.to_string();
-            out.close(CloseCode::Normal)
+            match msg {
+                ws::Message::Binary(data) => {
+                    (*msg_string_ref.borrow_mut()) = Some(bincode::deserialize(&data[..]).unwrap());
+                    out.close(CloseCode::Normal)
+                },
+                _ => panic!("We expected a ws::Message::Binary")
+            }
         }
     })
     .unwrap();
 
     // Then
-    assert_eq!(&*msg_string.borrow(), "pong");
+    assert_eq!(*msg_string.borrow(), Some(ChatMessage::Pong));
 }
 
 #[test]
@@ -59,20 +64,24 @@ fn ping__live_socket_replies_to_pong_with_error() {
     let url = "ws://127.0.0.1:4444";
     let app = App::start().unwrap();
     let listener_socket = app.local_socket;
-    let msg_string = RefCell::new(String::new());
+    let msg_string = RefCell::new(None);
     let msg_string_ref = &msg_string;
 
     // When
     let sut = connect(url, |out| {
         out.send("pong").unwrap();
         move |msg: ws::Message| {
-            (*msg_string_ref.borrow_mut()) = msg.to_string();
-            out.close(CloseCode::Normal)
+            match msg {
+                ws::Message::Binary(data) => {
+                    (*msg_string_ref.borrow_mut()) = Some(bincode::deserialize(&data[..]).unwrap());
+                    out.close(CloseCode::Normal)
+                },
+                _ => panic!("We expected a ws::Message::Binary")
+            }
         }
     })
         .unwrap();
 
     // Then
-    assert_eq!(&*msg_string.borrow(), "error");
+    assert_eq!(*msg_string.borrow(), Some(ChatMessage::Error));
 }
-
