@@ -1,22 +1,25 @@
-use crate::{
-    Error,
-    Result
-};
 use super::*;
-use std::net::{TcpListener, Ipv4Addr};
-use ws::{connect, CloseCode, Handler};
+use crate::{Error, Result};
+use std::any::Any;
+use std::borrow::{Borrow, BorrowMut};
 use std::cell::{Cell, RefCell};
+use std::net::{Ipv4Addr, TcpListener};
+use std::ops::Deref;
 use std::rc::Rc;
+use std::sync::RwLock;
+use ws::{connect, CloseCode, Handler};
+use std::{time, thread};
 
 pub enum Message {
     Ping,
-    Hello
+    Hello,
 }
 
 #[test]
 fn start__app_starts() -> Result<()> {
     // Given
-    let expected_socket = SocketAddr::from(([127,0,0,1], 4444));
+    // Using localhost because we assume it shows up first in the list
+    let expected_socket = SocketAddr::from(([127, 0, 0, 1], 4444));
     let sut = App::start;
 
     // When
@@ -29,28 +32,56 @@ fn start__app_starts() -> Result<()> {
 
 // https://github.com/housleyjk/ws-rs/blob/master/examples/client.rs
 #[test]
-fn ping__live_socket_replies_with_pong() {
+fn ping__live_socket_replies_to_ping_with_pong() {
     // Given
-    let expected_socket = SocketAddr::from(([127,0,0,1], 4444));
-    let stringly_socket = expected_socket.to_string();
+    let url = "ws://127.0.0.1:4444";
     let app = App::start().unwrap();
-    let listener_socket = app.local_socket;
-    let refcell = RefCell::<String>::new(String::new());
-    let alt_input_string = refcell.clone();
-    let input_string = Rc::<RefCell<String>>::new(refcell);
+    let msg = RefCell::new(None);
+    let msg_ref = &msg;
 
     // When
-    let sut = connect(stringly_socket, |out| {    let alt_input_string = refcell.clone();
-
-        out.send("ping").unwrap();
-
+    let sut = connect(url, |out| {
+        out.send(bincode::serialize(&ChatMessage::Ping).unwrap()).unwrap();
         move |msg: ws::Message| {
-            println!("Received message {:?}", &msg);
-            *input_string.borrow_mut() = msg.to_string();
-            out.close(CloseCode::Normal)
+            match msg {
+                ws::Message::Binary(data) => {
+                    (*msg_ref.borrow_mut()) = Some(bincode::deserialize(&data[..]).unwrap());
+                    out.close(CloseCode::Normal)
+                },
+                _ => panic!("We expected a ws::Message::Binary")
+            }
         }
-    }).unwrap();
+    })
+    .unwrap();
 
     // Then
-    assert_eq!(alt_input_string, RefCell::new(String::from("pong")));
+    assert_eq!(*msg.borrow(), Some(ChatMessage::Pong));
+}
+
+#[test]
+fn ping__live_socket_replies_to_pong_with_error() {
+    // Given
+    let url = "ws://127.0.0.1:4444";
+    let app = App::start().unwrap();
+    let listener_socket = app.local_socket;
+    let msg = RefCell::new(None);
+    let msg_ref = &msg;
+
+    // When
+    let sut = connect(url, |out| {
+        out.send("pong").unwrap();
+        move |msg: ws::Message| {
+            match msg {
+                ws::Message::Binary(data) => {
+                    (*msg_ref.borrow_mut()) = Some(bincode::deserialize(&data[..]).unwrap());
+                    out.close(CloseCode::Normal)
+                },
+                _ => panic!("We expected a ws::Message::Binary")
+            }
+        }
+    })
+        .unwrap();
+
+    // Then
+    assert_eq!(*msg.borrow(), Some(ChatMessage::Error));
 }

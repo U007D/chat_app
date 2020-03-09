@@ -5,6 +5,7 @@ use iced::{Settings, Application};
 //use std::env;
 use app::ChatWindow;
 use error::Error;
+use crate::app::App;
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -12,6 +13,8 @@ type Result<T, E = Error> = std::result::Result<T, E>;
 
 fn main() -> Result<()> {
 //    println!("Hello, {:?}", env::args().nth(1).ok_or(MissingNameArg)?);
-    ChatWindow::run(Settings::default());
+//    ChatWindow::run(Settings::default());
+    let app = App::start()?;
+    app.listener_thread.join();
     Ok(())
 }

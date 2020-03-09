@@ -22,7 +22,7 @@ sudo add-apt-repository ppa:oibaf/graphics-drivers
 sudo apt update && sudo apt upgrade
 ```
 
-Then, build Rust:
+Then, use Rust to build the app:
 ```
 cargo build
 ```

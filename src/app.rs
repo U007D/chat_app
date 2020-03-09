@@ -1,66 +1,83 @@
 #[cfg(test)]
 mod unit_tests;
 
-use std::thread::{JoinHandle, Builder};
 use std::default::Default;
 use std::net::SocketAddr;
+use std::thread::{Builder, JoinHandle};
 
-use iced::{Application, Command, Column, Element, Text};
 use get_if_addrs::{get_if_addrs, IfAddr};
+use iced::{Application, Column, Command, Element, Text};
 use ws;
 
-use crate::Result;
 use crate::Error;
+use crate::Result;
 use ws::listen;
+use serde::{Serialize, Deserialize};
+use bincode;
 
 pub struct App {
-    local_socket: SocketAddr,
-    listener_thread: JoinHandle<Result<()>>,
+    pub local_socket: SocketAddr,
+    pub listener_thread: JoinHandle<Result<()>>,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+enum ChatMessage {
+    Ping,
+    Pong,
+    Error
 }
 
 impl App {
-
     pub fn start() -> Result<Self> {
         // Build socket
         const PORT: u16 = 4444;
         let addrs = get_if_addrs()?;
-        let local_addr = addrs
-            .into_iter()
-            .nth(0)
-            .map_or_else(||Err(Error::NoIpAddrFound), |intrfc | {
-                match intrfc.addr {
-                    IfAddr::V4(addr) => Ok(addr.ip),
-                    IfAddr::V6(_) => Err(Error::IpTypeMismatch)
-                }
-            })?;
+        let local_addr = addrs.into_iter().nth(0).map_or_else(
+            || Err(Error::NoIpAddrFound),
+            |intrfc| match intrfc.addr {
+                IfAddr::V4(addr) => Ok(addr.ip),
+                IfAddr::V6(_) => Err(Error::IpTypeMismatch),
+            },
+        )?;
         let local_socket = SocketAddr::new(local_addr.into(), PORT);
 
         // Start listener
         let thread_builder = Builder::new();
         let listener_thread = thread_builder.spawn(move || {
-            listen(local_socket, |sender| {
+            let result = listen(local_socket, |sender| {
                 // The handler needs to take ownership of sender, so we use move
                 move |msg| {
                     // Handle messages received on this connection
                     println!("Server got message '{}'. ", msg);
 
+                    let reply = match msg {
+                        ws::Message::Text(message) if message == "ping" => ChatMessage::Pong,
+                        _ => ChatMessage::Error
+                    };
+
+                    let serialized_reply: Vec<u8> = bincode::serialize(&reply).unwrap();
+
                     // Use the out channel to send messages back
-                    sender.send("pong".to_string())
+                    sender.send(serialized_reply)
                 }
-            }).map_err(Error::from)
+            })
+            .map_err(Error::from);
+            result
         })?;
 
-        Ok(Self { local_socket, listener_thread })
+
+        Ok(Self {
+            local_socket,
+            listener_thread,
+        })
     }
 }
 
 #[derive(Default)]
-pub(crate) struct ChatWindow {
-}
+pub(crate) struct ChatWindow {}
 
 #[derive(Debug, Clone, Copy)]
-pub enum Message {
-}
+pub enum Message {}
 
 impl Application for ChatWindow {
     type Message = Message;
@@ -77,10 +94,9 @@ impl Application for ChatWindow {
         Command::none()
     }
 
-    fn view (&mut self) -> Element<Message> {
+    fn view(&mut self) -> Element<Message> {
         Column::new()
-            .push(
-                Text::new("Welcome to the Chat App").size(50)
-            ).into()
+            .push(Text::new("Welcome to the Chat App").size(50))
+            .into()
     }
 }
