@@ -18,6 +18,7 @@ pub enum Message {
 #[test]
 fn start__app_starts() -> Result<()> {
     // Given
+    // Using localhost because we assume it shows up first in the list
     let expected_socket = SocketAddr::from(([127, 0, 0, 1], 4444));
     let sut = App::start;
 
@@ -35,17 +36,16 @@ fn ping__live_socket_replies_to_ping_with_pong() {
     // Given
     let url = "ws://127.0.0.1:4444";
     let app = App::start().unwrap();
-    let listener_socket = app.local_socket;
-    let msg_string = RefCell::new(None);
-    let msg_string_ref = &msg_string;
+    let msg = RefCell::new(None);
+    let msg_ref = &msg;
 
     // When
     let sut = connect(url, |out| {
-        out.send("ping").unwrap();
+        out.send(bincode::serialize(&ChatMessage::Ping).unwrap()).unwrap();
         move |msg: ws::Message| {
             match msg {
                 ws::Message::Binary(data) => {
-                    (*msg_string_ref.borrow_mut()) = Some(bincode::deserialize(&data[..]).unwrap());
+                    (*msg_ref.borrow_mut()) = Some(bincode::deserialize(&data[..]).unwrap());
                     out.close(CloseCode::Normal)
                 },
                 _ => panic!("We expected a ws::Message::Binary")
@@ -55,7 +55,7 @@ fn ping__live_socket_replies_to_ping_with_pong() {
     .unwrap();
 
     // Then
-    assert_eq!(*msg_string.borrow(), Some(ChatMessage::Pong));
+    assert_eq!(*msg.borrow(), Some(ChatMessage::Pong));
 }
 
 #[test]
@@ -64,8 +64,8 @@ fn ping__live_socket_replies_to_pong_with_error() {
     let url = "ws://127.0.0.1:4444";
     let app = App::start().unwrap();
     let listener_socket = app.local_socket;
-    let msg_string = RefCell::new(None);
-    let msg_string_ref = &msg_string;
+    let msg = RefCell::new(None);
+    let msg_ref = &msg;
 
     // When
     let sut = connect(url, |out| {
@@ -73,7 +73,7 @@ fn ping__live_socket_replies_to_pong_with_error() {
         move |msg: ws::Message| {
             match msg {
                 ws::Message::Binary(data) => {
-                    (*msg_string_ref.borrow_mut()) = Some(bincode::deserialize(&data[..]).unwrap());
+                    (*msg_ref.borrow_mut()) = Some(bincode::deserialize(&data[..]).unwrap());
                     out.close(CloseCode::Normal)
                 },
                 _ => panic!("We expected a ws::Message::Binary")
@@ -83,5 +83,5 @@ fn ping__live_socket_replies_to_pong_with_error() {
         .unwrap();
 
     // Then
-    assert_eq!(*msg_string.borrow(), Some(ChatMessage::Error));
+    assert_eq!(*msg.borrow(), Some(ChatMessage::Error));
 }

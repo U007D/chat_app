@@ -21,3 +21,6 @@ impl From<WsError> for Error {
         Error::WebSocket(err)
     }
 }
+
+
+//`std::convert::From<app::ChatMessage>`
