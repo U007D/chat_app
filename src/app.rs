@@ -51,8 +51,10 @@ impl App {
                     println!("Server got message '{}'. ", msg);
 
                     let reply = match msg {
-                        ws::Message::Text(message) if message == "ping" => ChatMessage::Pong,
-                        _ => ChatMessage::Error
+                        ws::Message::Text(message)
+                            if bincode::serialize(&message).unwrap() == bincode::serialize(&ChatMessage::Ping).unwrap()
+                                => bincode::serialize(&ChatMessage::Pong).unwrap(),
+                        _ => bincode::serialize(&ChatMessage::Error).unwrap()
                     };
 
                     let serialized_reply: Vec<u8> = bincode::serialize(&reply).unwrap();
