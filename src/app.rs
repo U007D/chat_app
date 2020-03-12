@@ -24,7 +24,8 @@ pub struct App {
 enum ChatMessage {
     Ping,
     Pong,
-    Error
+    Error(Error),
+    CouldNotSerialize,
 }
 
 impl App {
@@ -51,13 +52,19 @@ impl App {
                     println!("Server got message '{}'. ", msg);
 
                     let reply = match msg {
-                        ws::Message::Text(message)
-                            if bincode::serialize(&message).unwrap() == bincode::serialize(&ChatMessage::Ping).unwrap()
-                                => bincode::serialize(&ChatMessage::Pong).unwrap(),
-                        _ => bincode::serialize(&ChatMessage::Error).unwrap()
+                        ws::Message::Binary(message) => {
+                            match bincode::deserialize(&message) {
+                                Ok(ChatMessage::Ping) => ChatMessage::Pong,
+                                _ => ChatMessage::Error
+                            }
+                        },
+                        _ => ChatMessage::Error
                     };
-
-                    let serialized_reply: Vec<u8> = bincode::serialize(&reply).unwrap();
+                    // TODO  - remove unwrap and share default response from struct
+                    let default_response =
+                        bincode::serialize(&ChatMessage::CouldNotSerialize).unwrap();
+                    let serialized_reply= bincode::serialize
+                        (&reply).unwrap_or(default_response);
 
                     // Use the out channel to send messages back
                     sender.send(serialized_reply)

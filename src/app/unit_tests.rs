@@ -85,3 +85,8 @@ fn ping__live_socket_replies_to_pong_with_error() {
     // Then
     assert_eq!(*msg.borrow(), Some(ChatMessage::Error));
 }
+
+// TODO - Unit test for unexpected return values of app start
+// ws Text instead of binary
+// Unexpected ChatMessage (anything other than Ping) - returns the content of one of the errors - error is the payload of the chat message I am already sending
+// Deserialize failure (nested match)
