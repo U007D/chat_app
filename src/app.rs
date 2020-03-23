@@ -24,8 +24,10 @@ pub struct App {
 enum ChatMessage {
     Ping,
     Pong,
-    Error(Error),
     CouldNotSerialize,
+    UnexpectedMessage(Box<ChatMessage>),
+    CouldNotDeserialize,
+    NonBinaryMessageReceived
 }
 
 impl App {
@@ -47,18 +49,19 @@ impl App {
         let listener_thread = thread_builder.spawn(move || {
             let result = listen(local_socket, |sender| {
                 // The handler needs to take ownership of sender, so we use move
-                move |msg| {
+                move |raw_msg| {
                     // Handle messages received on this connection
-                    println!("Server got message '{}'. ", msg);
+                    println!("Server got message '{}'. ", raw_msg);
 
-                    let reply = match msg {
+                    let reply = match raw_msg {
                         ws::Message::Binary(message) => {
                             match bincode::deserialize(&message) {
                                 Ok(ChatMessage::Ping) => ChatMessage::Pong,
-                                _ => ChatMessage::Error
+                                Ok(bad_message) => ChatMessage::UnexpectedMessage(Box::new(bad_message)),
+                                _ => ChatMessage::CouldNotDeserialize,
                             }
                         },
-                        _ => ChatMessage::Error
+                        _ => ChatMessage::NonBinaryMessageReceived
                     };
                     // TODO  - remove unwrap and share default response from struct
                     let default_response =

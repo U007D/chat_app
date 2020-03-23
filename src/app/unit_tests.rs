@@ -59,7 +59,7 @@ fn ping__live_socket_replies_to_ping_with_pong() {
 }
 
 #[test]
-fn ping__live_socket_replies_to_pong_with_error() {
+fn ping__live_socket_replies_to_pong_with_unexpected_message_message() {
     // Given
     let url = "ws://127.0.0.1:4444";
     let app = App::start().unwrap();
@@ -69,7 +69,40 @@ fn ping__live_socket_replies_to_pong_with_error() {
 
     // When
     let sut = connect(url, |out| {
-        out.send("pong").unwrap();
+        // Use a ref because bincode is efficient in how it serializes into vec of bytes
+        out.send(bincode::serialize(&ChatMessage::Pong).unwrap()).unwrap();
+        move |msg: ws::Message| {
+            match msg {
+                // Calling this for a side effect
+                ws::Message::Binary(data) => {
+                    (*msg_ref.borrow_mut()) = Some(bincode::deserialize(&data[..]).unwrap());
+                    out.close(CloseCode::Normal)
+                },
+                _ => panic!("We expected a ws::Message::Binary")
+            }
+        }
+    })
+        .unwrap();
+
+    // Then
+    assert_eq!(*msg.borrow(), Some(ChatMessage::UnexpectedMessage(Box::new(ChatMessage::Pong))));
+}
+
+// TODO - Unit test for unexpected return values of app start
+// Unexpected ChatMessage (anything other than Ping) - returns the content of one of the errors - error is the payload of the chat message I am already sending
+
+#[test]
+fn unexpected_sent_message_returns_descriptive_error() {
+    // Given
+    let url = "ws://127.0.0.1:4444";
+    let app = App::start().unwrap();
+    let msg = RefCell::new(None);
+    let msg_ref = &msg;
+    let bad_message = ChatMessage::Pong;
+
+    //When
+    let sut = connect(url, |out| {
+        out.send(bincode::serialize(&bad_message).unwrap()).unwrap();
         move |msg: ws::Message| {
             match msg {
                 ws::Message::Binary(data) => {
@@ -82,11 +115,8 @@ fn ping__live_socket_replies_to_pong_with_error() {
     })
         .unwrap();
 
-    // Then
-    assert_eq!(*msg.borrow(), Some(ChatMessage::Error));
+    //Then
+     assert_eq!(*msg.borrow(), Some(ChatMessage::UnexpectedMessage(Box::new(bad_message))));
 }
-
-// TODO - Unit test for unexpected return values of app start
 // ws Text instead of binary
-// Unexpected ChatMessage (anything other than Ping) - returns the content of one of the errors - error is the payload of the chat message I am already sending
 // Deserialize failure (nested match)
