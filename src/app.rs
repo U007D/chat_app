@@ -2,7 +2,7 @@
 mod unit_tests;
 
 use std::default::Default;
-use std::net::SocketAddr;
+use std::net::{SocketAddr, Ipv4Addr};
 use std::thread::{Builder, JoinHandle};
 
 use get_if_addrs::{get_if_addrs, IfAddr};
@@ -22,6 +22,8 @@ pub struct App {
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 enum ChatMessage {
+    Hello,
+    IpList(Vec<Ipv4Addr>),
     Ping,
     Pong,
     CouldNotSerialize,
@@ -57,6 +59,7 @@ impl App {
                         ws::Message::Binary(message) => {
                             match bincode::deserialize(&message) {
                                 Ok(ChatMessage::Ping) => ChatMessage::Pong,
+                                Ok(ChatMessage::Hello) => ChatMessage::IpList(vec![]),
                                 Ok(bad_message) => ChatMessage::UnexpectedMessage(Box::new(bad_message)),
                                 _ => ChatMessage::CouldNotDeserialize,
                             }

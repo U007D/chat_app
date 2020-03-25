@@ -10,11 +10,6 @@ use std::sync::RwLock;
 use ws::{connect, CloseCode, Handler};
 use std::{time, thread};
 
-pub enum Message {
-    Ping,
-    Hello,
-}
-
 #[test]
 fn start__app_starts() -> Result<()> {
     // Given
@@ -88,21 +83,17 @@ fn ping__live_socket_replies_to_pong_with_unexpected_message_message() {
     assert_eq!(*msg.borrow(), Some(ChatMessage::UnexpectedMessage(Box::new(ChatMessage::Pong))));
 }
 
-// TODO - Unit test for unexpected return values of app start
-// Unexpected ChatMessage (anything other than Ping) - returns the content of one of the errors - error is the payload of the chat message I am already sending
-
 #[test]
-fn unexpected_sent_message_returns_descriptive_error() {
+fn hello__new_server_responds_with_empty_ip_list() {
     // Given
     let url = "ws://127.0.0.1:4444";
     let app = App::start().unwrap();
     let msg = RefCell::new(None);
     let msg_ref = &msg;
-    let bad_message = ChatMessage::Pong;
 
-    //When
+    // When
     let sut = connect(url, |out| {
-        out.send(bincode::serialize(&bad_message).unwrap()).unwrap();
+        out.send(bincode::serialize(&ChatMessage::Hello).unwrap()).unwrap();
         move |msg: ws::Message| {
             match msg {
                 ws::Message::Binary(data) => {
@@ -115,8 +106,6 @@ fn unexpected_sent_message_returns_descriptive_error() {
     })
         .unwrap();
 
-    //Then
-     assert_eq!(*msg.borrow(), Some(ChatMessage::UnexpectedMessage(Box::new(bad_message))));
+    // Then
+    assert_eq!(*msg.borrow(), Some(ChatMessage::IpList(Vec::<Ipv4Addr>::new())));
 }
-// ws Text instead of binary
-// Deserialize failure (nested match)
