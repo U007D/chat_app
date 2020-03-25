@@ -21,3 +21,13 @@ sudo apt-get install cmake libasound2-dev libexpat1-dev libfreetype6-dev libssl-
 sudo add-apt-repository ppa:oibaf/graphics-drivers
 sudo apt update && sudo apt upgrade
 ```
+
+Then, use Rust to build the app:
+```
+cargo build
+```
+
+# Reference
+
+Algorithm [link](https://docs.google.com/document/d/1xXNIU1jg0hHy1M5lFzREX0EXfa6K-rapz4_ziC3wu6g/edit?usp=sharing)
+(read-only)
