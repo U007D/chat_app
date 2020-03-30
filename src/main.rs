@@ -11,6 +11,6 @@ fn main() -> Result<()> {
 //    println!("Hello, {:?}", env::args().nth(1).ok_or(MissingNameArg)?);
 //    ChatWindow::run(Settings::default());
     let app = App::start()?;
-    let _ = app.listener_thread.join().map_err(|e| Error::AppStartError(e));
+    let _ = app.listener_thread.join().map_err(|e| Error::AppStartError(e))?;
     Ok(())
 }
