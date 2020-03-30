@@ -2,11 +2,9 @@ use std::io::Error as IoError;
 use ws::Error as WsError;
 #[derive(Debug)]
 pub enum Error {
-    MissingNameArg,
     NoIpAddrFound,
     IpTypeMismatch,
     IoError(IoError),
-    NonTextMessageReceived,
     WebSocket(WsError),
 }
 

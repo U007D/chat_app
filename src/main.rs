@@ -1,9 +1,5 @@
 mod app;
 mod error;
-use iced::{Settings, Application};
-//use crate::MyError::MissingNameArg;
-//use std::env;
-use app::ChatWindow;
 use error::Error;
 use crate::app::App;
 
