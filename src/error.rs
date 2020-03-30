@@ -6,6 +6,7 @@ pub enum Error {
     IpTypeMismatch,
     IoError(IoError),
     WebSocket(WsError),
+    AppStartError(Error)
 }
 
 impl From<IoError> for Error {
