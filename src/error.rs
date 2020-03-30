@@ -1,25 +1,18 @@
 use std::io::Error as IoError;
 use ws::Error as WsError;
-#[derive(Debug)]
+use thiserror::Error;
+use std::any::Any;
+
+#[derive(Debug, Error)]
 pub enum Error {
+    #[error("No IP Address found")]
     NoIpAddrFound,
+    #[error("IP Type mismatched")]
     IpTypeMismatch,
-    IoError(IoError),
-    WebSocket(WsError),
-    AppStartError(Error)
+    #[error("Got an Io Error that is: {0}")]
+    IoError(#[from] IoError),
+    #[error("Got a WebSocket error that is: {0}")]
+    WebSocket(#[from] WsError),
+    #[error("Got error on App Start: {0:?}")]
+    AppStartError(Box<dyn Any + Send + 'static>)
 }
-
-impl From<IoError> for Error {
-    fn from(err: IoError) -> Self {
-        Error::IoError(err)
-    }
-}
-
-impl From<WsError> for Error {
-    fn from(err: WsError) -> Self {
-        Error::WebSocket(err)
-    }
-}
-
-
-//`std::convert::From<app::ChatMessage>`
