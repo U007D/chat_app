@@ -13,3 +13,5 @@ serde = { version = "1.0.104", features = ["derive"] }
 ws = "0.9.1"
 bincode = "1.2.1"
 thiserror = "1.0.14"
+net2 = "0.2.33"
+url = "2.1.1"

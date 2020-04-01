@@ -1,3 +1,4 @@
+#![feature(type_alias_impl_trait)]
 mod app;
 mod error;
 use error::Error;
