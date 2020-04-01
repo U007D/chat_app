@@ -20,7 +20,7 @@ pub struct App {
     pub listener_thread: JoinHandle<Result<()>>,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Debug, Deserialize, PartialEq, Serialize, Clone)]
 enum ChatMessage {
     Hello,
     IpList(Vec<Ipv4Addr>),
