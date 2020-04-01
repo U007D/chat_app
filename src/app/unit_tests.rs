@@ -1,4 +1,9 @@
 #![allow(non_snake_case)]
+
+mod start;
+mod ping;
+mod hello;
+
 use super::*;
 use crate::Result;
 use std::cell::RefCell;
@@ -27,54 +32,3 @@ fn send_message( message: &ChatMessage) -> ChatMessage {
     response
 }
 
-#[test]
-fn start__app_starts() -> Result<()> {
-    // Given
-    // Using localhost because we assume it shows up first in the list
-    let expected_socket = SocketAddr::from(([127, 0, 0, 1], 4444));
-    let sut = App::start;
-
-    // When
-    let actual_app = sut()?;
-
-    // Then
-    assert_eq!(actual_app.local_socket, expected_socket);
-    Ok(())
-}
-
-// https://github.com/housleyjk/ws-rs/blob/master/examples/client.rs
-#[test]
-fn ping__live_socket_replies_to_ping_with_pong() {
-    // Given
-    let _app = App::start().unwrap();
-
-    // When
-    let response = send_message(&ChatMessage::Ping);
-
-    // Then
-    assert_eq!(response, ChatMessage::Pong);
-}
-
-#[test]
-fn ping__live_socket_replies_to_pong_with_unexpected_message_message() {
-    // Given
-    let _app = App::start().unwrap();
-
-    // when
-    let response = send_message(&ChatMessage::Pong);
-
-    // Then
-    assert_eq!(response, ChatMessage::UnexpectedMessage(Box::new(ChatMessage::Pong)));
-}
-
-#[test]
-fn hello__new_server_responds_with_empty_ip_list() {
-    // Given
-    let _app = App::start().unwrap();
-
-    // when
-    let response = send_message(&ChatMessage::Hello);
-
-    // Then
-    assert_eq!(response, ChatMessage::IpList(Vec::<Ipv4Addr>::new()));
-}
