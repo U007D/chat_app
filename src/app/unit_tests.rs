@@ -1,21 +1,16 @@
 #![allow(non_snake_case)]
 use super::*;
-use crate::{Error, Result};
-use std::any::Any;
-use std::borrow::{Borrow, BorrowMut};
-use std::cell::{Cell, RefCell};
-use std::net::{Ipv4Addr, TcpListener};
-use std::ops::Deref;
-use std::rc::Rc;
-use std::sync::RwLock;
-use ws::{connect, CloseCode, Handler};
-use std::{time, thread};
+use crate::Result;
+use std::cell::RefCell;
+use std::net::Ipv4Addr;
+use ws::{connect, CloseCode};
+
 
 fn send_message( message: &ChatMessage) -> ChatMessage {
     let msg: RefCell<Option<ChatMessage>> = RefCell::new(None);
     let msg_ref = &msg;
 
-    let sut = connect("ws://127.0.0.1:4444", |out| {
+    connect("ws://127.0.0.1:4444", |out| {
         out.send(bincode::serialize(message).unwrap()).unwrap();
         move |msg: ws::Message| {
             match msg {
@@ -51,7 +46,7 @@ fn start__app_starts() -> Result<()> {
 #[test]
 fn ping__live_socket_replies_to_ping_with_pong() {
     // Given
-    let app = App::start().unwrap();
+    let _app = App::start().unwrap();
 
     // When
     let response = send_message(&ChatMessage::Ping);
@@ -79,6 +74,7 @@ fn hello__new_server_responds_with_empty_ip_list() {
 
     // when
     let response = send_message(&ChatMessage::Hello);
+
     // Then
     assert_eq!(response, ChatMessage::IpList(Vec::<Ipv4Addr>::new()));
 }
