@@ -12,3 +12,4 @@ get_if_addrs = "0.5.3"
 serde = { version = "1.0.104", features = ["derive"] }
 ws = "0.9.1"
 bincode = "1.2.1"
+thiserror = "1.0.14"

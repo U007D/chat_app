@@ -1,9 +1,5 @@
 mod app;
 mod error;
-use iced::{Settings, Application};
-//use crate::MyError::MissingNameArg;
-//use std::env;
-use app::ChatWindow;
 use error::Error;
 use crate::app::App;
 
@@ -15,6 +11,6 @@ fn main() -> Result<()> {
 //    println!("Hello, {:?}", env::args().nth(1).ok_or(MissingNameArg)?);
 //    ChatWindow::run(Settings::default());
     let app = App::start()?;
-    app.listener_thread.join();
+    let _ = app.listener_thread.join().map_err(|e| Error::AppStartError(e))?;
     Ok(())
 }
