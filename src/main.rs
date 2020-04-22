@@ -15,6 +15,7 @@
 #![forbid(unsafe_code)]
 mod app;
 mod error;
+mod ports;
 
 use crate::app::{App, ChatWindow};
 use error::Error;
