@@ -2,18 +2,16 @@
 mod unit_tests;
 
 use std::default::Default;
-use std::net::{SocketAddr, Ipv4Addr};
+use std::net::{Ipv4Addr, SocketAddr};
 use std::thread::{Builder, JoinHandle};
 
 use get_if_addrs::{get_if_addrs, IfAddr};
 use iced::{Application, Column, Command, Element, Text};
-use ws;
 
 use crate::Error;
 use crate::Result;
+use serde::{Deserialize, Serialize};
 use ws::listen;
-use serde::{Serialize, Deserialize};
-use bincode;
 
 pub struct App {
     pub local_socket: SocketAddr,
@@ -29,7 +27,7 @@ enum ChatMessage {
     CouldNotSerialize,
     UnexpectedMessage(Box<ChatMessage>),
     CouldNotDeserialize,
-    NonBinaryMessageReceived
+    NonBinaryMessageReceived,
 }
 
 impl App {
@@ -49,37 +47,35 @@ impl App {
         // Start listener
         let thread_builder = Builder::new();
         let listener_thread = thread_builder.spawn(move || {
-            let result = listen(local_socket, |sender| {
+            listen(local_socket, |sender| {
                 // The handler needs to take ownership of sender, so we use move
                 move |raw_msg| {
                     // Handle messages received on this connection
-                    println!("Server got message '{}'. ", raw_msg);
+                    println!("Server got message '{:?}'. ", raw_msg);
 
                     let reply = match raw_msg {
-                        ws::Message::Binary(message) => {
-                            match bincode::deserialize(&message) {
-                                Ok(ChatMessage::Ping) => ChatMessage::Pong,
-                                Ok(ChatMessage::Hello) => ChatMessage::IpList(vec![]),
-                                Ok(bad_message) => ChatMessage::UnexpectedMessage(Box::new(bad_message)),
-                                _ => ChatMessage::CouldNotDeserialize,
+                        ws::Message::Binary(message) => match bincode::deserialize(&message) {
+                            Ok(ChatMessage::Ping) => ChatMessage::Pong,
+                            Ok(ChatMessage::Hello) => ChatMessage::IpList(vec![]),
+                            Ok(bad_message) => {
+                                ChatMessage::UnexpectedMessage(Box::new(bad_message))
                             }
+                            _ => ChatMessage::CouldNotDeserialize,
                         },
-                        _ => ChatMessage::NonBinaryMessageReceived
+                        _ => ChatMessage::NonBinaryMessageReceived,
                     };
                     // TODO  - remove unwrap and share default response from struct
+                    #[allow(clippy::result_unwrap_used)]
                     let default_response =
                         bincode::serialize(&ChatMessage::CouldNotSerialize).unwrap();
-                    let serialized_reply= bincode::serialize
-                        (&reply).unwrap_or(default_response);
+                    let serialized_reply = bincode::serialize(&reply).unwrap_or(default_response);
 
                     // Use the out channel to send messages back
                     sender.send(serialized_reply)
                 }
             })
-            .map_err(Error::from);
-            result
+            .map_err(Error::from)
         })?;
-
 
         Ok(Self {
             local_socket,
@@ -89,7 +85,7 @@ impl App {
 }
 
 #[derive(Default)]
-pub(crate) struct ChatWindow {}
+pub struct ChatWindow {}
 
 #[derive(Debug, Clone, Copy)]
 pub enum Message {}
@@ -109,7 +105,7 @@ impl Application for ChatWindow {
         Command::none()
     }
 
-    fn view(&mut self) -> Element<Message> {
+    fn view(&mut self) -> Element<'_, Message> {
         Column::new()
             .push(Text::new("Welcome to the Chat App").size(50))
             .into()
