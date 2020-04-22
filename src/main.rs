@@ -15,17 +15,23 @@
 #![forbid(unsafe_code)]
 mod app;
 mod error;
-use crate::app::App;
+
+use crate::app::{App, ChatWindow};
 use error::Error;
+use iced::{Application, Settings};
+use std::env;
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
-//FYI to self impl std::error::Error for Error {} // implement trait for type, Error type is now impls std error trait
+const PORT: u16 = 4444;
 
 fn main() -> Result<()> {
-    //    println!("Hello, {:?}", env::args().nth(1).ok_or(MissingNameArg)?);
-    //    ChatWindow::run(Settings::default());
-    let app = App::start()?;
+    println!(
+        "Hello, {:?}",
+        env::args().nth(1).ok_or(Error::MissingNameArg)?
+    );
+    ChatWindow::run(Settings::default());
+    let app = App::start(PORT)?;
     let _ = app
         .listener_thread
         .join()

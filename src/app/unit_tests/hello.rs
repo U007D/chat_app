@@ -1,10 +1,8 @@
 use super::*;
-use net2::TcpBuilder;
 use std::sync::mpsc::{channel, Sender as ChannelSender};
-use std::thread;
 use std::time::{Duration, Instant};
 use url::Url;
-use ws::{Factory, Handler, Sender, WebSocket};
+use ws::{Factory, Sender, WebSocket};
 
 #[derive(Debug)]
 struct FirstClient {
@@ -21,9 +19,13 @@ impl Factory for FirstClient {
 
         let channel_sender = self.sender.take().unwrap();
 
-        move |msg: ws::Message| {
-            channel_sender.send(());
-            Ok(())
+        move |_msg: ws::Message| {
+            channel_sender.send(()).map_err(|e| {
+                ws::Error::new(
+                    ws::ErrorKind::Custom(Box::new(e)),
+                    "std::sync::mpsc::SendError",
+                )
+            })
         }
     }
 }
@@ -31,7 +33,7 @@ impl Factory for FirstClient {
 #[test]
 fn hello__new_server_responds_with_empty_ip_list() {
     // Given
-    let _app = App::start().unwrap();
+    let _app = App::start(PORT).unwrap();
 
     // when
     let response = send_message(&ChatMessage::Hello);
@@ -40,10 +42,11 @@ fn hello__new_server_responds_with_empty_ip_list() {
     assert_eq!(response, ChatMessage::IpList(Vec::<Ipv4Addr>::new()));
 }
 
+#[allow(clippy::let_unit_value)]
 #[test]
 fn hello__second_client_receives_non_empty_ip_list() {
     // Given
-    let _app = App::start().unwrap();
+    let _app = App::start(PORT).unwrap();
 
     let (sender, receiver) = channel();
 

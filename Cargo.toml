@@ -1,5 +1,5 @@
 [package]
-name = "learning_chat"
+name = "chat_app"
 version = "0.1.0"
 authors = ["marianne.goldin <marianne@transparentinc.co>"]
 edition = "2018"

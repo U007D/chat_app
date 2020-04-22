@@ -1,16 +1,16 @@
+mod chat_message;
+mod chat_window;
 #[cfg(test)]
 mod unit_tests;
 
-use std::default::Default;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::thread::{Builder, JoinHandle};
 
-use get_if_addrs::{get_if_addrs, IfAddr};
-use iced::{Application, Column, Command, Element, Text};
-
 use crate::Error;
 use crate::Result;
-use serde::{Deserialize, Serialize};
+use chat_message::ChatMessage;
+pub use chat_window::ChatWindow;
+use get_if_addrs::{get_if_addrs, IfAddr};
 use ws::listen;
 
 pub struct App {
@@ -18,31 +18,10 @@ pub struct App {
     pub listener_thread: JoinHandle<Result<()>>,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Serialize, Clone)]
-enum ChatMessage {
-    Hello,
-    IpList(Vec<Ipv4Addr>),
-    Ping,
-    Pong,
-    CouldNotSerialize,
-    UnexpectedMessage(Box<ChatMessage>),
-    CouldNotDeserialize,
-    NonBinaryMessageReceived,
-}
-
 impl App {
-    pub fn start() -> Result<Self> {
+    pub fn start(port: u16) -> Result<Self> {
         // Build socket
-        const PORT: u16 = 4444;
-        let addrs = get_if_addrs()?;
-        let local_addr = addrs.into_iter().nth(0).map_or_else(
-            || Err(Error::NoIpAddrFound),
-            |intrfc| match intrfc.addr {
-                IfAddr::V4(addr) => Ok(addr.ip),
-                IfAddr::V6(_) => Err(Error::IpTypeMismatch),
-            },
-        )?;
-        let local_socket = SocketAddr::new(local_addr.into(), PORT);
+        let local_socket = SocketAddr::new(local_addr()?.into(), port);
 
         // Start listener
         let thread_builder = Builder::new();
@@ -84,30 +63,12 @@ impl App {
     }
 }
 
-#[derive(Default)]
-pub struct ChatWindow {}
-
-#[derive(Debug, Clone, Copy)]
-pub enum Message {}
-
-impl Application for ChatWindow {
-    type Message = Message;
-
-    fn new() -> (Self, Command<Message>) {
-        (Self::default(), Command::none())
-    }
-
-    fn title(&self) -> String {
-        String::from("Chat App")
-    }
-
-    fn update(&mut self, _message: Self::Message) -> Command<Message> {
-        Command::none()
-    }
-
-    fn view(&mut self) -> Element<'_, Message> {
-        Column::new()
-            .push(Text::new("Welcome to the Chat App").size(50))
-            .into()
-    }
+fn local_addr() -> Result<Ipv4Addr> {
+    get_if_addrs()?.into_iter().nth(0).map_or_else(
+        || Err(Error::NoIpAddrFound),
+        |intrfc| match intrfc.addr {
+            IfAddr::V4(addr) => Ok(addr.ip),
+            IfAddr::V6(_) => Err(Error::IpTypeMismatch),
+        },
+    )
 }

@@ -4,7 +4,7 @@ use super::*;
 #[test]
 fn ping__live_socket_replies_to_ping_with_pong() {
     // Given
-    let _app = App::start().unwrap();
+    let _app = App::start(PORT).unwrap();
 
     // When
     let response = send_message(&ChatMessage::Ping);
@@ -16,11 +16,14 @@ fn ping__live_socket_replies_to_ping_with_pong() {
 #[test]
 fn ping__live_socket_replies_to_pong_with_unexpected_message_message() {
     // Given
-    let _app = App::start().unwrap();
+    let _app = App::start(PORT).unwrap();
 
     // when
     let response = send_message(&ChatMessage::Pong);
 
     // Then
-    assert_eq!(response, ChatMessage::UnexpectedMessage(Box::new(ChatMessage::Pong)));
+    assert_eq!(
+        response,
+        ChatMessage::UnexpectedMessage(Box::new(ChatMessage::Pong))
+    );
 }
