@@ -48,6 +48,7 @@ impl App {
                     let default_response =
                         bincode::serialize(&ChatMessage::CouldNotSerialize).unwrap();
                     let serialized_reply = bincode::serialize(&reply).unwrap_or(default_response);
+                    println!("Server sent reply'{:?}'. ", serialized_reply);
 
                     // Use the out channel to send messages back
                     sender.send(serialized_reply)
