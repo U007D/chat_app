@@ -1,9 +1,9 @@
 use std::error::Error;
-use crate::ports::{Msg, Transporter};
+use crate::ports::{Msg, MsgTransporter};
 
 pub trait Transport {
     type Error: Error;
 
-    fn rx<T: Transporter>(&self) -> Result<T, Self::Error>;
-    fn tx<T: Transporter>(&self, T) -> Result<(), Self::Error>;
+    fn recv(&self) -> Result<MsgTransporter, Self::Error>;
+    fn send(&self, MsgTransporter) -> Result<(), Self::Error>;
 }
