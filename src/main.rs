@@ -13,11 +13,10 @@
 #![allow(clippy::empty_enum, clippy::iter_nth_zero, clippy::match_bool)]
 // To use the `unsafe` keyword, change to `#![allow(unsafe_code)]` (do not remove); aids auditing.
 #![forbid(unsafe_code)]
-mod app;
 mod error;
 mod ports;
+mod app;
 
-use crate::app::{App, ChatWindow};
 use error::Error;
 use iced::{Application, Settings};
 use std::env;
@@ -27,15 +26,5 @@ type Result<T, E = Error> = std::result::Result<T, E>;
 const PORT: u16 = 4444;
 
 fn main() -> Result<()> {
-    println!(
-        "Hello, {:?}",
-        env::args().nth(1).ok_or(Error::MissingNameArg)?
-    );
-    ChatWindow::run(Settings::default());
-    let app = App::start(PORT)?;
-    let _ = app
-        .listener_thread
-        .join()
-        .map_err(|e| Error::AppStartError(e))?;
     Ok(())
 }

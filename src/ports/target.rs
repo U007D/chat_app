@@ -1,1 +1,4 @@
-pub struct Target(pub Guid);
+use crate::ports::NodeId;
+
+pub struct Target(pub NodeId);
+
