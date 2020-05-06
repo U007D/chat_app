@@ -1,5 +1,5 @@
 use crate::ports::Msg;
-mod fake_transport;
+pub(crate) mod fake_transport;
 use fake_transport::FakeTransport;
 use crate::app::App;
 

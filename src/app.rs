@@ -1,6 +1,6 @@
 use crate::ports::Transport;
 
 #[cfg(test)]
-mod unit_tests;
+pub(crate) mod unit_tests;
 
 struct App {}

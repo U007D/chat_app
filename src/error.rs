@@ -9,18 +9,20 @@ use ws::Error as WsError;
 #[allow(clippy::pub_enum_variant_names)]
 #[derive(Error)]
 pub enum Error {
-    #[error("Error on App Start: {:?}", 0)]
-    AppStartError(Box<dyn Any + Send + 'static>),
-    #[error("Got an Io Error that is: {0}")]
-    IoError(#[from] IoError),
-    #[error("IP Type mismatched")]
-    IpTypeMismatch,
-    #[error("Missing `name` argument.  Type `chat_app --help` for usage information.")]
-    MissingNameArg,
-    #[error("No IP Address found")]
-    NoIpAddrFound,
-    #[error("Got a WebSocket error that is: {0}")]
-    WebSocket(#[from] WsError),
+    // #[error("Error on App Start: {:?}", 0)]
+    // AppStartError(Box<dyn Any + Send + 'static>),
+    // #[error("Got an Io Error that is: {0}")]
+    // IoError(#[from] IoError),
+    // #[error("IP Type mismatched")]
+    // IpTypeMismatch,
+    // #[error("Missing `name` argument.  Type `chat_app --help` for usage information.")]
+    // MissingNameArg,
+    // #[error("No IP Address found")]
+    // NoIpAddrFound,
+    // #[error("Got a WebSocket error that is: {0}")]
+    // WebSocket(#[from] WsError),
+    #[cfg(test)]
+    FakeTransport(#[from] crate::app::unit_tests::fake_transport::FakeTransportError)
 }
 
 // Rust defaults to showing the `Debug` presentation of an error when exiting from main.  To work
