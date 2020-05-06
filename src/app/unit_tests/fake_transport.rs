@@ -33,7 +33,7 @@ impl Transport for FakeTransport {
     type Error = FakeTransportError;
 
     async fn recv(&mut self) -> Result<Msg, Self::Error> {
-        Ok(self.receiver.recv().await?)
+        Ok(self.receiver.next().await?)
     }
 
     async fn send(&mut self, message: Msg) -> Result<(), Self::Error> {
