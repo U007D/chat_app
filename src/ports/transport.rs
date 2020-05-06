@@ -7,6 +7,6 @@ use crate::Result;
 pub trait Transport {
     type Error: Error;
 
-    async fn recv(&self) -> Result<Msg, Self::Error>;
-    async fn send(&self, message: Msg) -> Result<(), Self::Error>;
+    async fn recv(&mut self) -> Result<Msg, Self::Error>;
+    async fn send(&mut self, message: Msg) -> Result<(), Self::Error>;
 }

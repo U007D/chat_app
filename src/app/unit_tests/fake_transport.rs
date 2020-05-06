@@ -1,8 +1,9 @@
 use crate::ports::{Msg, Transport};
 use crate::Result;
 use async_trait::async_trait;
-use std::sync::mpsc::{channel, Sender, Receiver};
+use futures::channel::mpsc::{channel, Sender, Receiver};
 use thiserror::Error;
+use futures::{StreamExt, SinkExt};
 
 #[derive(Debug)]
 pub struct FakeTransport {
@@ -18,7 +19,11 @@ impl FakeTransport {
             sender: le_sender,
             receiver: le_receiver
         };
-        let remote_end = FakeTransport { sender: re_sender, receiver: re_receiver };
+        let remote_end = FakeTransport {
+            sender: re_sender,
+            receiver: re_receiver
+        };
+
         (local_end, remote_end)
     }
 }
@@ -27,12 +32,12 @@ impl FakeTransport {
 impl Transport for FakeTransport {
     type Error = FakeTransportError;
 
-    async fn recv(&self) -> Result<Msg, Self::Error> {
-        self.receiver.recv().into()
+    async fn recv(&mut self) -> Result<Msg, Self::Error> {
+        Ok(self.receiver.recv().await?)
     }
 
-    async fn send(&self, message: Msg) -> Result<(), Self::Error> {
-        self.sender.send(message).into()
+    async fn send(&mut self, message: Msg) -> Result<(), Self::Error> {
+        Ok(self.sender.send(message).await?)
     }
 }
 

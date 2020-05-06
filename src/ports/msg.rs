@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, PartialEq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Msg {
     Hello,
     /*IpList(Vec<Ipv4Addr>),*/
     Ping,
     Pong,
     CouldNotSerialize,
-    UnexpectedMessage(Box<Msg>),
+    UnexpectedMessage,
     CouldNotDeserialize,
     NonBinaryMessageReceived,
 }
