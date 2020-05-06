@@ -1,4 +1,4 @@
-use crate::ports::{Msg, Transport, MsgTransporter, Target};
+use crate::ports::{Msg, Transport};
 use crate::Result;
 use async_trait::async_trait;
 use std::sync::mpsc::{channel, Sender, Receiver};
@@ -43,10 +43,10 @@ pub struct LocalEnd {
 }
 
 impl LocalEnd {
-    pub fn send(msg: Msg) -> Result<()> {
+    pub fn send(&self, msg: &Msg) -> Result<()> {
         unimplemented!()
     }
-    pub fn recv() -> Result<Msg> {
+    pub fn recv(&self) -> Result<Msg> {
         unimplemented!()
     }
 }

@@ -18,8 +18,6 @@ mod ports;
 mod app;
 
 use error::Error;
-use iced::{Application, Settings};
-use std::env;
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 

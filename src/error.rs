@@ -1,10 +1,7 @@
 use serde::export::Formatter;
-use std::any::Any;
 use std::fmt::Result as FmtResult;
 use std::fmt::{Debug, Display};
-use std::io::Error as IoError;
 use thiserror::Error;
-use ws::Error as WsError;
 
 #[allow(clippy::pub_enum_variant_names)]
 #[derive(Error)]
@@ -22,6 +19,7 @@ pub enum Error {
     // #[error("Got a WebSocket error that is: {0}")]
     // WebSocket(#[from] WsError),
     #[cfg(test)]
+    #[error("FakeTransport error: {}", 0)]
     FakeTransport(#[from] crate::app::unit_tests::fake_transport::FakeTransportError)
 }
 
