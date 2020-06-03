@@ -1,5 +1,3 @@
-use serde::{Deserialize, Serialize};
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum Msg {
     Hello,

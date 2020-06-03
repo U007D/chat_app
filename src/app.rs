@@ -6,5 +6,5 @@ pub(crate) mod unit_tests;
 struct App {}
 
 impl App {
-    pub fn new<T: Transport>(transport: T){}
+    pub fn new<T: Transport>(transport: T) { }
 }
