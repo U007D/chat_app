@@ -1,21 +1,21 @@
 #![allow(non_snake_case)]
-use crate::ports::{Msg, Transport};
-pub(crate) mod fake_transport;
-use fake_transport::TransportEnd;
+pub mod fake_transport;
+
 use crate::app::App;
+use crate::ports::{Msg, Transport};
 
 #[test]
-fn ping__live_socket_replies_to_ping_with_pong() {
+fn recv__when_sending_app_ping_over_transport_it_responds_with_pong() {
     // Given
-    let (mut local_end, remote_end) = TransportEnd::new();
-    App::new(remote_end);
-
-    // When
+    let (mut local_end, remote_end) = Transport::new();
     let send_result = local_end.send(Msg::Ping);
     assert_eq!(send_result, Ok(()));
 
+    let _sut = App::new(remote_end);
+
+    // When
+    let recv_result = local_end.recv();
+
     // Then
-    let recv_result = local_end.recv().unwrap();
     assert_eq!(recv_result, Ok(Msg::Pong));
 }
-
