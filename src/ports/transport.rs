@@ -1,10 +1,17 @@
-use std::error::Error;
-use crate::ports::{Msg};
-use crate::Result;
+#![allow(clippy::module_name_repetitions)]
+mod channel;
+mod id;
+use crate::{app::Msg, Result};
+pub use {channel::IChannel, id::IId};
 
-pub trait Transport {
-    type Error: Error;
+pub trait ITransport {
+    type Channel: IChannel;
+    type Id: IId;
+    type Msgs: Iterator<Item = Msg>;
 
-    fn recv(&mut self) -> Result<Msg, Self::Error>;
-    fn send(&mut self, message: Msg) -> Result<(), Self::Error>;
+    fn connect_to(&mut self, id: Self::Id) -> Result<Self::Channel>;
+    fn msgs(&mut self) -> Self::Msgs;
+    fn send_msg(&self, msg: Msg) -> Result<Self>
+    where
+        Self: Sized;
 }

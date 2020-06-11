@@ -1,10 +1,8 @@
-use crate::ports::Transport;
+mod msg;
 
-#[cfg(test)]
-pub(crate) mod unit_tests;
+use crate::ports::ITransport;
+pub use msg::Msg;
 
-struct App {}
-
-impl App {
-    pub fn new<T: Transport>(transport: T) { }
+struct App<Transport: ITransport> {
+    transport: Transport,
 }
