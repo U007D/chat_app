@@ -1,2 +1,2 @@
 pub mod transport;
-pub use transport::ITransport;
+pub use transport::Transport;

@@ -1,1 +1,1 @@
-pub trait IChannel {}
+pub trait Channel {}

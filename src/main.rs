@@ -13,6 +13,7 @@
 // To use the `unsafe` keyword, change to `#![allow(unsafe_code)]` (do not remove); aids auditing.
 #![forbid(unsafe_code)]
 
+mod adapters;
 mod app;
 mod error;
 mod ports;
@@ -21,6 +22,6 @@ use error::Error;
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
-fn main() -> Result<()> {
+const fn main() -> Result<()> {
     Ok(())
 }

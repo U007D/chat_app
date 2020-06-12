@@ -1,8 +1,14 @@
 mod msg;
 
-use crate::ports::ITransport;
+use crate::ports::Transport;
 pub use msg::Msg;
 
-struct App<Transport: ITransport> {
-    transport: Transport,
+struct App<TransportImpl: Transport> {
+    transport: TransportImpl,
+}
+
+impl<TransportImpl: Transport> App<TransportImpl> {
+    pub fn new(transport: TransportImpl) -> Self {
+        Self { transport }
+    }
 }
