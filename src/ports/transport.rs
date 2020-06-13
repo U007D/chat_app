@@ -8,8 +8,8 @@ pub trait Transport {
     type Id;
     type Msgs;
 
-    fn connect_to(&mut self, id: &Self::Id) -> Result<Self::Channel>;
-    fn id(&self) -> &Self::Id;
+    fn connect_to(&mut self, id: Self::Id) -> Result<&mut Self>;
+    fn id(&self) -> Self::Id;
     fn msgs(&mut self) -> Self::Msgs;
     fn send_msg(&self, msg: Msg) -> Result<Self>
     where

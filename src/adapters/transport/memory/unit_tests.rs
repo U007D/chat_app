@@ -2,16 +2,33 @@
 use super::*;
 
 #[test]
-fn connect_to__a_transport_instance_can_connect_to_another_transport_instance_of_same_type() {
-    // Given two transport instances
-    let mut local_xp = MemoryTransport::new();
-    let remote_xp = MemoryTransport::new();
-    let remote_id = remote_xp.id();
-    let mut sut = |target| local_xp.connmemect_to(target);
+fn connect_to__a_mxp_can_connect_to_another_mxp() {
+    // Given two memory transport instances
+    let mut local_mxp = MemoryTransport::new();
+    let remote_mxp = MemoryTransport::new();
+    let mut sut = |target| local_mxp.connect_to(target);
 
     // When a connection is attempted
-    let res = sut(remote_id);
+    let res = sut(remote_mxp.id());
 
     // Then connection is been successfully established
     assert!(res.is_ok());
+}
+
+fn connect_to__a_mxp_can_receive_a_message_from_another_mxp() -> Result<()> {
+    // Given two memory transport instances with a `Msg` in the receiver's receive queue
+    let mut local_mxp = MemoryTransport::new();
+    let remote_mxp = MemoryTransport::new();
+    local_mxp
+        .connect_to(remote_mxp.id())?
+        .send_msg(Msg::Hello)?;
+    let sut = |sender| remote_mxp.chan(sender).recv_msg();
+
+    // When a message is read
+    let res = sut(local_mxp.id());
+
+    // Then connection is been successfully established
+    assert_eq!(res, Ok(Msg::Hello));
+
+    Ok(())
 }

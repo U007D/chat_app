@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod unit_tests;
+
 mod msg;
 
 use crate::ports::Transport;
