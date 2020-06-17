@@ -2,4 +2,4 @@
 mod memory;
 
 #[cfg(test)]
-pub use memory::MemoryTransport;
+pub use memory::{MemoryTransport, MemoryTransportAddr};

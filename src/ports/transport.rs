@@ -5,11 +5,11 @@ pub use channel::Channel;
 
 pub trait Transport {
     type Channel: Channel;
-    type Id;
+    type Addr;
     type Msgs;
 
-    fn connect_to(&mut self, id: Self::Id) -> Result<&mut Self>;
-    fn id(&self) -> Self::Id;
+    fn addr(&self) -> Self::Addr;
+    fn connect_to(&mut self, id: Self::Addr) -> Result<&mut Self>;
     fn msgs(&mut self) -> Self::Msgs;
     fn send_msg(&self, msg: Msg) -> Result<Self>
     where

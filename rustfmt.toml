@@ -1,0 +1,10 @@
+max_width = 100
+merge_derives = true # default
+newline_style = "Auto" # default
+remove_nested_parens = true # default
+reorder_imports = true # default
+reorder_modules = true # default
+tab_spaces = 4 # default
+use_field_init_shorthand = true
+use_small_heuristics = "Default"
+use_try_shorthand = true

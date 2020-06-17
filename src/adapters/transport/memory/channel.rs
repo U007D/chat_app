@@ -23,3 +23,11 @@ impl Channel for MemoryChannel {
         unimplemented!()
     }
 }
+
+impl Eq for MemoryChannel {}
+
+impl PartialEq for MemoryChannel {
+    fn eq(&self, rhs: &Self) -> bool {
+        self as *const Self == rhs as *const Self
+    }
+}

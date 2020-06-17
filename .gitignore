@@ -3,6 +3,7 @@
 .idea
 *.iml
 .gradle
+.zprofile
 out/
 build/
 gen/
