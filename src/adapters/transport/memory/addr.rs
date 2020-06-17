@@ -1,10 +1,10 @@
 use super::MemoryTransport;
 
-#[derive(Debug)]
-pub struct MemoryTransportAddr(pub(super) usize);
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Hash)]
+pub struct MemoryTransportAddr(usize);
 
-impl From<MemoryTransport> for MemoryTransportAddr {
-    fn from(mx: MemoryTransport) -> Self {
-        Self(&mx as usize)
+impl From<usize> for MemoryTransportAddr {
+    fn from(n: usize) -> Self {
+        Self(n)
     }
 }

@@ -2,7 +2,6 @@
 mod addr;
 mod channel;
 mod factory;
-mod registry;
 #[cfg(test)]
 mod unit_tests;
 
@@ -15,13 +14,15 @@ pub use {
 
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct MemoryTransport {
+    addr: MemoryTransportAddr,
     chans: HashMap<<Self as Transport>::Addr, MemoryChannel>,
 }
 
 impl MemoryTransport {
     #[must_use]
-    pub const fn new() -> Self {
+    const fn new(addr: MemoryTransportAddr) -> Self {
         Self {
+            addr,
             chans: HashMap::new(),
         }
     }

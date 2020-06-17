@@ -1,59 +1,35 @@
-use crate::{
-    adapters::transport::{MemoryTransport, MemoryTransportAddr},
-    error::transport::memory::factory::Result,
-};
-use crossbeam_utils::atomic::AtomicCell;
-use futures::TryFutureExt;
-use std::sync::atomic::AtomicUsize;
-use std::{
-    collections::HashMap,
-    sync::{
-        atomic::{AtomicPtr, Ordering},
-        Arc, RwLock,
-    },
-};
+use crate::adapters::transport::{MemoryTransport, MemoryTransportAddr};
+use std::sync::atomic::Ordering;
+use std::sync::{Arc, Mutex};
+use std::{collections::HashMap, sync::atomic::AtomicUsize};
 
-static NULL_FACTORY: &mut Arc<RwLock<MemoryTransportFactory>> =
-    &mut 0 as &mut Arc<RwLock<MemoryTransportFactory>>;
+pub static MEMORY_TRANSPORT_FACTORY: MemoryTransportFactory = MemoryTransportFactory::new();
 
-static MEMORY_TRANSPORT_FACTORY: Arc<RwLock<MemoryTransportFactory>> =
-    Arc::new(RwLock::new(Option::<MemoryTransportFactoryState>));
-
-#[derive(Debug)]
-struct MemoryTransportFactory {
-    addr: AtomicUsize,
-    transports: HashMap<MemoryTransportAddr, MemoryTransport>,
+#[derive(Debug, Default)]
+pub struct MemoryTransportFactory {
+    next_addr: AtomicUsize,
+    transports: HashMap<MemoryTransportAddr, Arc<Mutex<MemoryTransport>>>,
 }
 
 impl MemoryTransportFactory {
-    pub fn new() -> Result<Arc<RwLock<MemoryTransportFactoryState>>> {
-        // Initialize singleton factory, if required
-        if let write_guard = MEMORY_TRANSPORT_FACTORY.try_write()? {
-            *write_guard.get_or_insert_with(|| {
-                *write_guard = Some(MemoryTransportFactory {
-                    addr: AtomicUsize::new(0),
-                    transports: HashMap::new(),
-                })
-            });
+    const fn new() -> Self {
+        Self {
+            next_addr: AtomicUsize::new(0),
+            transports: HashMap::new(),
         }
-        // Synchronize in the event of write-contention (wait for other task to initialize)
-        MEMORY_TRANSPORT_FACTORY.try_read()?;
-
-        // MEMORY_TRANSPORT_FACTORY has unconditionally been initialized exactly once at this point
-        Ok(Arc::clone(&MEMORY_TRANSPORT_FACTORY))
     }
 
-    pub fn make_memory_transport(&mut self) -> &MemoryTransport {
-        let addr = self.addr.fetch_add(1, Ordering::SeqCst);
+    pub fn make_memory_transport(&mut self) -> Arc<Mutex<MemoryTransport>> {
+        let addr = self.next_addr.fetch_add(1, Ordering::SeqCst);
         // Detect and panic on `self.addr` overflow
         assert!(
-            self.addr.load(Ordering::SeqCst) > addr,
+            self.next_addr.load(Ordering::SeqCst) > addr,
             "`MemoryTransportFactory::addr` overflow."
         );
 
-        let mta = MemoryTransportAddr::new(addr);
+        let mta = MemoryTransportAddr::from(addr);
         self.transports
-            .insert(mta, MemoryTransport::new(mta))
+            .insert(mta, Arc::new(Mutex::new(MemoryTransport::new(mta))))
             .and_then(|orig| {
                 unreachable!(
                     "Internal error: Duplicate address detected for index {}: {:?}",
@@ -61,8 +37,10 @@ impl MemoryTransportFactory {
                 )
             });
 
-        self.transports
-            .get(&mta)
-            .expect("Internal error: Just-added-item not found in Transport Registry.")
+        Arc::clone(
+            self.transports
+                .get(&mta)
+                .expect("Internal error: Just-added-item not found in Transport Registry."),
+        )
     }
 }
