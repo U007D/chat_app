@@ -1,61 +1,83 @@
 #![allow(clippy::module_name_repetitions)]
 mod addr;
 mod channel;
-mod factory;
+mod sender_dispenser;
 #[cfg(test)]
 mod unit_tests;
 
-use crate::{app::Msg, error::transport::Result, ports::Transport};
-use std::{collections::HashMap, sync::mpsc::channel};
-pub use {
-    addr::MemoryTransportAddr, channel::MemoryChannel, factory::MemoryTransportFactory,
-    registry::MemoryTransportRegistry,
+use crate::{
+    app::Msg,
+    error::transport::memory::{Error, Result},
+    ports::Transport,
 };
+pub use addr::MemoryTransportAddr;
+use bool_ext::BoolExt;
+use channel::MemoryChannel;
+use lazy_static::lazy_static;
+pub use sender_dispenser::SenderDispenser;
+use std::{collections::HashMap, sync::Mutex};
 
-#[derive(Debug, Eq, PartialEq, Hash)]
+lazy_static! {
+    static ref MEMORY_TRANSPORT_NEXT_ADDR: Mutex<usize> = Mutex::new(0_usize);
+    static ref SENDER_STORE: HashMap<MemoryTransportAddr, SenderDispenser<Msg>> = HashMap::new();
+}
+
+#[derive(Debug)]
 pub struct MemoryTransport {
     addr: MemoryTransportAddr,
-    chans: HashMap<<Self as Transport>::Addr, MemoryChannel>,
+    channels: Vec<MemoryChannel>,
 }
 
 impl MemoryTransport {
-    #[must_use]
-    const fn new(addr: MemoryTransportAddr) -> Self {
+    fn new() -> Self {
         Self {
-            addr,
-            chans: HashMap::new(),
+            // Atomically increment `MEMORY_TRANSPORT_NEXT_ADDR`, but panic if it would overflow.
+            addr: {
+                let mut guard = MEMORY_TRANSPORT_NEXT_ADDR
+                    .lock()
+                    .expect("Internal Error: `next_addr` instance unexpectedly not available.");
+                let addr = *guard;
+                let next_addr = addr.saturating_add(1);
+                (addr != next_addr)
+                    .some_with(|| *guard = next_addr)
+                    .unwrap_or_else(|| {
+                        panic!(format!(
+                            "Too many (> {}) `MemoryTransport` instances created.",
+                            usize::max_value()
+                        ))
+                    });
+                MemoryTransportAddr::from(addr)
+            },
+            channels: Vec::new(),
         }
     }
 
-    fn add_chan(&mut self, addr: <Self as Transport>::Addr, chan: MemoryChannel) -> &mut Self {
-        self.chans.insert(addr, chan);
-        self
+    fn with_connection(addr: MemoryTransportAddr) -> Result<Self, <Self as Transport>::Error> {
+        let mut res = Self::new();
+        res.connect_to(addr)?;
+        Ok(res)
     }
 }
 
 impl Transport for MemoryTransport {
     type Channel = MemoryChannel;
-    type Addr = &'static Self;
-    type Msgs = ();
+    type Addr = MemoryTransportAddr;
+    type Error = Error;
+    type Msg = Msg;
 
     fn addr(&self) -> Self::Addr {
-        self
+        self.addr
     }
 
-    fn connect_to(&mut self, mut remote: Self::Addr) -> Result<&mut Self> {
-        let (local_tx, remote_rx) = channel();
-        let (remote_tx, local_rx) = channel();
-
-        remote.add_chan(self.addr(), MemoryChannel::new(remote_tx, remote_rx));
-        self.add_chan(remote.addr(), MemoryChannel::new(local_tx, local_rx));
-        Ok(self)
-    }
-
-    fn msgs(&mut self) -> Self::Msgs {
+    fn connect_to(&mut self, id: Self::Addr) -> Result<&mut Self, Self::Error> {
         unimplemented!()
     }
 
-    fn send_msg(&self, _msg: Msg) -> Result<Self>
+    fn msg(&mut self) -> Self::Msg {
+        unimplemented!()
+    }
+
+    fn send_msg(&self, msg: Self::Msg) -> Result<Self, Self::Error>
     where
         Self: Sized,
     {

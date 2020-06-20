@@ -1,5 +1,3 @@
-use super::MemoryTransport;
-
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Hash)]
 pub struct MemoryTransportAddr(usize);
 

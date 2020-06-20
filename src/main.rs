@@ -1,4 +1,4 @@
-#![feature(type_alias_impl_trait)]
+#![feature(no_more_cas)]
 // Safety-critical application lints
 #![deny(
     bare_trait_objects,
@@ -18,9 +18,7 @@ mod app;
 mod error;
 mod ports;
 
-use error::Error;
-
-type Result<T, E = Error> = std::result::Result<T, E>;
+use error::Result;
 
 const fn main() -> Result<()> {
     Ok(())

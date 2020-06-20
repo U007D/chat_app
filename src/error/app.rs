@@ -1,10 +1,10 @@
-use serde::export::Formatter;
-use std::fmt::Result as FmtResult;
-use std::fmt::{Debug, Display};
+use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
 use thiserror::Error;
 
+pub type Result<T, E = Error> = std::result::Result<T, E>;
+
 #[allow(clippy::pub_enum_variant_names)]
-#[derive(Error)]
+#[derive(Clone, Error, PartialEq)]
 pub enum Error {
     // #[error("Error on App Start: {:?}", 0)]
 // AppStartError(Box<dyn Any + Send + 'static>),
@@ -20,8 +20,8 @@ pub enum Error {
 // WebSocket(#[from] WsError),
 }
 
-// Rust defaults to showing the `Debug` presentation of an error when exiting from main.  To
-// show the nicely formatted `Display` presentation, we must override this default behavior.
+// Rust unfortunately defaults to showing the `Debug` presentation of an error when exiting from
+// main.  To show the nicely formatted `Display` presentation, we override this default behavior.
 impl Debug for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         <Self as Display>::fmt(self, f)
