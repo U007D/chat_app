@@ -10,7 +10,7 @@ pub trait Transport {
     type Msg;
 
     fn addr(&self) -> Self::Addr;
-    fn connect_to(&mut self, id: Self::Addr) -> Result<&mut Self, Self::Error>;
+    fn connect_to(&mut self, addr: Self::Addr) -> Result<&mut Self, Self::Error>;
     fn msg(&mut self) -> Self::Msg;
     fn send_msg(&self, msg: Self::Msg) -> Result<Self, Self::Error>
     where

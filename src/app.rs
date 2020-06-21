@@ -12,6 +12,8 @@ struct App<TransportImpl: Transport> {
 
 impl<TransportImpl: Transport> App<TransportImpl> {
     pub fn new(transport: TransportImpl) -> Self {
-        Self { transport }
+        Self {
+            transport,
+        }
     }
 }

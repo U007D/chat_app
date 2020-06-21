@@ -1,11 +1,11 @@
-#![feature(no_more_cas)]
 // Safety-critical application lints
 #![deny(
     bare_trait_objects,
     clippy::float_cmp_const,
     clippy::indexing_slicing,
     clippy::integer_arithmetic,
-    clippy::unwrap_used,
+    clippy::option_unwrap_used,
+    clippy::result_unwrap_used,
     clippy::pedantic
 )]
 #![warn(clippy::all, clippy::nursery, clippy::pedantic, rust_2018_idioms)]
