@@ -1,12 +1,14 @@
-use crate::error::transport::channel::Result;
+use crate::error::transport::memory::channel::{Error, Result};
 
 pub trait Channel {
+    type Addr;
+    type Error: Into<Error>;
     type Msg;
 
-    fn recv_msg(&self) -> Result<Self>
+    fn rx(&self) -> Result<Self::Msg>
     where
         Self: Sized;
-    fn send_msg(&self) -> Result<Self>
+    fn tx(&self, msg: Self::Msg, addr: Self::Addr) -> Result<&Self>
     where
         Self: Sized;
 }

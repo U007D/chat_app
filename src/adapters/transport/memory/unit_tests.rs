@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 use super::*;
-use crate::{app::Msg, ports::Transport};
+use crate::{app::Msg, error::transport::Result, ports::Transport};
 use assert2::assert;
 
 #[test]

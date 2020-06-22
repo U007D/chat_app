@@ -1,39 +1,26 @@
-#![allow(clippy::module_name_repetitions)]
-mod singleton;
-
 mod addr;
-mod channel;
+pub(crate) mod channel;
+mod singleton;
 mod tx_dispenser;
 #[cfg(test)]
 mod unit_tests;
 
-use std::{
-    collections::HashMap,
-    sync::{
-        mpsc::{channel, Receiver, Sender},
-        Mutex,
-    },
+use crate::{
+    error::transport::memory::{Error, Result},
+    ports::{transport::Channel, Transport},
 };
-
+pub use addr::MemoryTransportAddr;
 use bool_ext::BoolExt;
-use dashmap::DashMap;
-
-pub use addr::Addr;
-use channel::MemoryChannel;
-use lazy_static::lazy_static;
 pub use tx_dispenser::TxDispenser;
 
-use crate::ports::transport::Channel;
-use crate::{
-    app::Msg,
-    error::transport::memory::{Error, Result},
-    ports::Transport,
-};
+type MemoryChannel = <MemoryTransport as Transport>::Channel;
+type Addr = <MemoryChannel as Channel>::Addr;
+type Msg = <MemoryChannel as Channel>::Msg;
 
 #[derive(Debug)]
 pub struct MemoryTransport {
     addr: Addr,
-    channel: <Self as Transport>::Channel,
+    channel: MemoryChannel,
 }
 
 impl MemoryTransport {
@@ -42,12 +29,12 @@ impl MemoryTransport {
 
         Self {
             addr,
-            channel: Channel::new(),
+            channel: MemoryChannel::new(addr),
         }
     }
 
     // Atomically increment `MEMORY_TRANSPORT_NEXT_ADDR`, but panic if it would overflow
-    // (panicking_add).
+    // (equivalent to atomic panicking_add).
     fn addr() -> Addr {
         let mut guard = singleton::MEMORY_TRANSPORT_NEXT_ADDR
             .lock()
@@ -57,7 +44,7 @@ impl MemoryTransport {
         (addr != next_addr)
             .some_with(|| *guard = next_addr)
             .unwrap_or_else(|| panic!(Error::TooManyInstances));
-        Addr::from(addr)
+        MemoryTransportAddr::from(addr)
     }
 
     pub fn with_connection(addr: Addr) -> Result<Self, <Self as Transport>::Error> {
@@ -68,37 +55,38 @@ impl MemoryTransport {
 }
 
 impl Transport for MemoryTransport {
-    type Channel = MemoryChannel;
-    type Addr = Addr;
+    type Channel = crate::adapters::transport::memory::channel::MemoryChannel;
     type Error = Error;
 
-    fn addr(&self) -> Self::Addr {
+    fn addr(&self) -> <Self::Channel as Channel>::Addr {
         self.addr
     }
 
     #[allow(unused_variables)]
-    fn connect_to(&mut self, addr: Self::Addr) -> Result<&mut Self, Self::Error> {}
+    fn connect_to(
+        &mut self,
+        addr: <Self::Channel as Channel>::Addr,
+    ) -> Result<&mut Self, Self::Error> {
+        self.channel.connect_to(addr)?;
+        Ok(self)
+    }
 
     #[allow(unused_variables)]
-    fn msg(&mut self) -> Result<<<Self as Transport>::Channel as Channel>::Msg> {
-        Ok(self.rx.recv()?)
+    fn msg(&mut self) -> Result<<Self::Channel as Channel>::Msg> {
+        Ok(self.channel.rx()?)
     }
 
     #[allow(unused_variables)]
     fn send_msg(
         &self,
-        msg: <<Self as Transport>::Channel as Channel>::Msg,
-        addr: Self::Addr,
+        msg: Msg,
+        addr: <Self::Channel as Channel>::Addr,
     ) -> Result<&Self, Self::Error>
     where
         Self: Sized,
     {
-        Ok(self
-            .senders
-            .get(&addr)
-            .ok_or_else(|| Error::RemoteAddrNotFound(addr))?
-            .send(msg)
-            .map(|_| self)?)
+        self.channel.tx(msg, addr)?;
+        Ok(self)
     }
 }
 

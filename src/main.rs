@@ -9,7 +9,12 @@
     clippy::pedantic
 )]
 #![warn(clippy::all, clippy::nursery, clippy::pedantic, rust_2018_idioms)]
-#![allow(clippy::empty_enum, clippy::iter_nth_zero, clippy::match_bool)]
+#![allow(
+    clippy::empty_enum,
+    clippy::iter_nth_zero,
+    clippy::match_bool,
+    clippy::module_name_repetitions
+)]
 // To use the `unsafe` keyword, change to `#![allow(unsafe_code)]` (do not remove); aids auditing.
 #![forbid(unsafe_code)]
 
