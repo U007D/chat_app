@@ -1,42 +1,51 @@
 mod addr;
-pub(crate) mod channel;
-mod singleton;
+mod static_store;
 mod tx_dispenser;
 #[cfg(test)]
 mod unit_tests;
 
 use crate::{
+    app::Msg,
     error::transport::memory::{Error, Result},
-    ports::{transport::Channel, Transport},
+    ports::Transport,
 };
 pub use addr::MemoryTransportAddr;
 use bool_ext::BoolExt;
+use std::{
+    collections::HashMap,
+    sync::mpsc::{channel, Receiver, Sender},
+};
 pub use tx_dispenser::TxDispenser;
-
-type MemoryChannel = <MemoryTransport as Transport>::Channel;
-type Addr = <MemoryChannel as Channel>::Addr;
-type Msg = <MemoryChannel as Channel>::Msg;
 
 #[derive(Debug)]
 pub struct MemoryTransport {
-    addr: Addr,
-    channel: MemoryChannel,
+    addr: MemoryTransportAddr,
+    rx: Receiver<<Self as Transport>::Msg>,
+    senders: HashMap<MemoryTransportAddr, Sender<<Self as Transport>::Msg>>,
 }
 
 impl MemoryTransport {
     pub fn new() -> Self {
         let addr = Self::addr();
+        let (tx, rx) = Self::make_channel(addr);
 
         Self {
             addr,
-            channel: MemoryChannel::new(addr),
+            rx,
+            senders: HashMap::new(),
         }
     }
 
-    // Atomically increment `MEMORY_TRANSPORT_NEXT_ADDR`, but panic if it would overflow
-    // (equivalent to atomic panicking_add).
-    fn addr() -> Addr {
-        let mut guard = singleton::MEMORY_TRANSPORT_NEXT_ADDR
+    pub fn with_connection(addr: MemoryTransportAddr) -> Result<Self, <Self as Transport>::Error> {
+        let mut res = Self::new();
+        res.connect_to(addr)?;
+        Ok(res)
+    }
+
+    // Atomically increment `NEXT_ADDR_STORE`, but panic if it would overflow
+    // (panicking_add).
+    fn addr() -> MemoryTransportAddr {
+        let mut guard = static_store::NEXT_ADDR_STORE
             .lock()
             .unwrap_or_else(|_| unreachable!(Error::NextAddrLockFailed));
         let addr = *guard;
@@ -47,46 +56,75 @@ impl MemoryTransport {
         MemoryTransportAddr::from(addr)
     }
 
-    pub fn with_connection(addr: Addr) -> Result<Self, <Self as Transport>::Error> {
-        let mut res = Self::new();
-        res.connect_to(addr)?;
-        Ok(res)
+    fn make_channel(
+        addr: MemoryTransportAddr,
+    ) -> (Sender<<Self as Transport>::Msg>, Receiver<<Self as Transport>::Msg>) {
+        let (tx, rx) = channel();
+        Self::register_sender(addr, tx.clone());
+        (tx, rx)
+    }
+
+    fn register_sender(addr: MemoryTransportAddr, tx: Sender<<Self as Transport>::Msg>) {
+        static_store::SENDER_STORE
+            .contains_key(&addr)
+            .do_false(|| {
+                static_store::SENDER_STORE
+                    .insert(addr, TxDispenser::new(tx))
+                    .map_or_else(|| {}, |_| unreachable!(Error::AddrFalseNegative(addr)))
+            })
+            .do_true(|| unreachable!(Error::AddrAlreadyAdded(addr)));
     }
 }
 
 impl Transport for MemoryTransport {
-    type Channel = crate::adapters::transport::memory::channel::MemoryChannel;
+    type Addr = MemoryTransportAddr;
     type Error = Error;
+    type Msg = Msg;
 
-    fn addr(&self) -> <Self::Channel as Channel>::Addr {
+    fn addr(&self) -> Self::Addr {
         self.addr
     }
 
     #[allow(unused_variables)]
-    fn connect_to(
-        &mut self,
-        addr: <Self::Channel as Channel>::Addr,
-    ) -> Result<&mut Self, Self::Error> {
-        self.channel.connect_to(addr)?;
+    fn connect_to(&mut self, addr: Self::Addr) -> Result<&mut Self, Self::Error> {
+        self.senders.contains_key(&addr).map(
+            || Err(Error::AddrAlreadyConnected(addr)),
+            || {
+                self.senders
+                    .insert(
+                        addr,
+                        static_store::SENDER_STORE
+                            .get(&addr)
+                            .ok_or_else(|| Error::RemoteAddrNotFound(addr))?
+                            .get(),
+                    )
+                    .map_or_else(
+                        || Ok(()),
+                        |_| {
+                            unreachable!(Error::AddrFalseNegative(addr));
+                        },
+                    )
+            },
+        )?;
         Ok(self)
     }
 
     #[allow(unused_variables)]
-    fn msg(&mut self) -> Result<<Self::Channel as Channel>::Msg> {
-        Ok(self.channel.rx()?)
+    fn rx_msg(&mut self) -> Result<<Self as Transport>::Msg> {
+        Ok(self.rx.recv()?)
     }
 
     #[allow(unused_variables)]
-    fn send_msg(
-        &self,
-        msg: Msg,
-        addr: <Self::Channel as Channel>::Addr,
-    ) -> Result<&Self, Self::Error>
+    fn tx_msg(&self, msg: <Self as Transport>::Msg, addr: Self::Addr) -> Result<&Self, Self::Error>
     where
         Self: Sized,
     {
-        self.channel.tx(msg, addr)?;
-        Ok(self)
+        Ok(self
+            .senders
+            .get(&addr)
+            .ok_or_else(|| Error::RemoteAddrNotFound(addr))?
+            .send(msg)
+            .map(|_| self)?)
     }
 }
 

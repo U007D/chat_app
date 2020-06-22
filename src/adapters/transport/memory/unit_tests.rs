@@ -25,12 +25,12 @@ fn send_msg__a_transport_can_send_a_message_to_another_transport() -> Result<()>
     let mut sut = MemoryTransport::with_connection(remote_addr)?;
 
     // When a message is read
-    let res = sut.send_msg(Msg::Hello, remote_addr);
+    let res = sut.tx_msg(Msg::Hello, remote_addr);
 
     // Then connection is been successfully established
     assert!(res.is_ok(), "{:?}", res);
     // And the `Msg` is received by the intended recipient
-    assert!(remote_txp.msg() == Ok(Msg::Hello));
+    assert!(remote_txp.rx_msg() == Ok(Msg::Hello));
 
     Ok(())
 }

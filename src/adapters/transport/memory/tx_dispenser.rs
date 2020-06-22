@@ -3,8 +3,8 @@ use std::sync::{mpsc::Sender, Mutex};
 pub struct TxDispenser<T>(Mutex<Sender<T>>);
 
 impl<T> TxDispenser<T> {
-    pub fn new(tx: Sender<T>) -> Self {
-        Self(Mutex::new(tx))
+    pub fn new(sender: Sender<T>) -> Self {
+        Self(Mutex::new(sender))
     }
 
     pub fn get(&self) -> Sender<T> {
