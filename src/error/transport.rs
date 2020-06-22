@@ -1,4 +1,3 @@
-pub mod channel;
 #[cfg(test)]
 pub mod memory;
 
@@ -8,6 +7,7 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
 pub enum Error {
+    #[cfg(test)]
     #[cfg(test)]
     #[error(transparent)]
     MemoryTransportError(#[from] memory::Error),
