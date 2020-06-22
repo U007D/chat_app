@@ -8,10 +8,7 @@ impl<T> SenderDispenser<T> {
     }
 
     pub fn get(&self) -> Sender<T> {
-        (*self
-            .0
-            .lock()
-            .expect("Internal Error: `Sender` instance unexpectedly not available."))
-        .clone()
+        (*self.0.lock().expect("Internal Error: `Sender` instance unexpectedly not available."))
+            .clone()
     }
 }

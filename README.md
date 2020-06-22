@@ -1,6 +1,6 @@
 # Chat App README
 
-A XAND Learning project to create an async chat app to enable users to talk to each other.
+A Learning project to create an async chat app to enable users to talk to each other.
 
 ## Requirements for this app:
 
@@ -29,5 +29,6 @@ cargo build
 
 # Reference
 
-Algorithm [link](https://docs.google.com/document/d/1xXNIU1jg0hHy1M5lFzREX0EXfa6K-rapz4_ziC3wu6g/edit?usp=sharing)
+Algorithm [link](
+https://docs.google.com/document/d/1xXNIU1jg0hHy1M5lFzREX0EXfa6K-rapz4_ziC3wu6g/edit?usp=sharing)
 (read-only)

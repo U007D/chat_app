@@ -1,4 +1,8 @@
-use crate::adapters::transport::memory::MemoryTransportAddr;
+use crate::ports::transport::Channel;
+use crate::{
+    adapters::transport::memory::{MemoryTransport, MemoryTransportAddr},
+    ports::Transport,
+};
 use thiserror::Error;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -20,6 +24,13 @@ pub enum Error {
     AddrFalseNegative(MemoryTransportAddr),
     #[error("Internal Error: Unable to acquire lock on `MEMORY_TRANSPORT_NEXT_ADDR`.")]
     NextAddrLockFailed,
+    #[error(transparent)]
+    RecvError(#[from] std::sync::mpsc::RecvError),
+    #[error(transparent)]
+    SendError(
+        #[from]
+        std::sync::mpsc::SendError<<<MemoryTransport as Transport>::Channel as Channel>::Msg>,
+    ),
     #[error("Remote Addr {} not found.", _0)]
     RemoteAddrNotFound(MemoryTransportAddr),
     #[error("Too many `MemoryTransport` instances (> {}) created.", usize::max_value())]

@@ -1,6 +1,6 @@
-use crate::app::Msg;
-use crate::{error::transport::channel::Result, ports::transport::Channel};
 use std::sync::mpsc::{Receiver, Sender};
+
+use crate::{app::Msg, error::transport::channel::Result, ports::transport::Channel};
 
 #[derive(Debug)]
 pub struct MemoryChannel {
@@ -10,11 +10,16 @@ pub struct MemoryChannel {
 
 impl MemoryChannel {
     pub fn new(tx: Sender<Msg>, rx: Receiver<Msg>) -> Self {
-        Self { tx, rx }
+        Self {
+            tx,
+            rx,
+        }
     }
 }
 
 impl Channel for MemoryChannel {
+    type Msg = Msg;
+
     fn recv_msg(&self) -> Result<Self> {
         unimplemented!()
     }

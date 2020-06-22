@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Msg {
     Hello,
     /*IpList(Vec<Ipv4Addr>),*/

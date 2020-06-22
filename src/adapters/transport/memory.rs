@@ -1,21 +1,5 @@
 #![allow(clippy::module_name_repetitions)]
-mod addr;
-mod channel;
-mod sender_dispenser;
-#[cfg(test)]
-mod unit_tests;
 
-use crate::{
-    app::Msg,
-    error::transport::memory::{Error, Result},
-    ports::Transport,
-};
-pub use addr::MemoryTransportAddr;
-use bool_ext::BoolExt;
-use channel::MemoryChannel;
-use dashmap::DashMap;
-use lazy_static::lazy_static;
-pub use sender_dispenser::SenderDispenser;
 use std::{
     collections::HashMap,
     sync::{
@@ -24,23 +8,47 @@ use std::{
     },
 };
 
+use bool_ext::BoolExt;
+use dashmap::DashMap;
+
+pub use addr::MemoryTransportAddr;
+use channel::MemoryChannel;
+use lazy_static::lazy_static;
+pub use sender_dispenser::SenderDispenser;
+
+use crate::ports::transport::Channel;
+use crate::{
+    app::Msg,
+    error::transport::memory::{Error, Result},
+    ports::Transport,
+};
+
+mod addr;
+mod channel;
+mod sender_dispenser;
+#[cfg(test)]
+mod unit_tests;
+
 lazy_static! {
     // `Mutex<usize>` is used for `MEMORY_TRANSPORT_NEXT_ADDR` instead of `AtomicUsize` because
     // saturating arithmetic is being performed on the `usize`.  It is not possible to do this
     // atomically with `AtomicUsize` without `fetch_update`, which is not stable at the time of this
     // writing (1.44.1).
-    #[allow(clippy::mutex_atomic)]
-    static ref MEMORY_TRANSPORT_NEXT_ADDR: Mutex<usize> = Mutex::new(0_usize);
+#[allow(clippy::mutex_atomic)]
+
+    static ref MEMORY_TRANSPORT_NEXT_ADDR: Mutex<usize> =
+    Mutex::new(0_usize);
     static ref SENDER_STORE:
-        DashMap<MemoryTransportAddr, SenderDispenser<<MemoryTransport as Transport>::Msg>>
+        DashMap<MemoryTransportAddr,
+        SenderDispenser<<<MemoryTransport as Transport>::Channel as Channel>::Msg>>
         = DashMap::new();
 }
 
 #[derive(Debug)]
 pub struct MemoryTransport {
     addr: MemoryTransportAddr,
-    rx: Receiver<<Self as Transport>::Msg>,
-    senders: HashMap<MemoryTransportAddr, Sender<<Self as Transport>::Msg>>,
+    rx: Receiver<<<Self as Transport>::Channel as Channel>::Msg>,
+    senders: HashMap<MemoryTransportAddr, Sender<<<Self as Transport>::Channel as Channel>::Msg>>,
 }
 
 impl MemoryTransport {
@@ -71,13 +79,19 @@ impl MemoryTransport {
 
     fn make_channel(
         addr: MemoryTransportAddr,
-    ) -> (Sender<<Self as Transport>::Msg>, Receiver<<Self as Transport>::Msg>) {
+    ) -> (
+        Sender<<<Self as Transport>::Channel as Channel>::Msg>,
+        Receiver<<<Self as Transport>::Channel as Channel>::Msg>,
+    ) {
         let (tx, rx) = channel();
         Self::register_sender(addr, tx.clone());
         (tx, rx)
     }
 
-    fn register_sender(addr: MemoryTransportAddr, tx: Sender<<Self as Transport>::Msg>) {
+    fn register_sender(
+        addr: MemoryTransportAddr,
+        tx: Sender<<<Self as Transport>::Channel as Channel>::Msg>,
+    ) {
         SENDER_STORE
             .contains_key(&addr)
             .do_false(|| {
@@ -99,7 +113,6 @@ impl Transport for MemoryTransport {
     type Channel = MemoryChannel;
     type Addr = MemoryTransportAddr;
     type Error = Error;
-    type Msg = Msg;
 
     fn addr(&self) -> Self::Addr {
         self.addr
@@ -130,16 +143,25 @@ impl Transport for MemoryTransport {
     }
 
     #[allow(unused_variables)]
-    fn msg(&mut self) -> Self::Msg {
-        unimplemented!()
+    fn msg(&mut self) -> Result<<<Self as Transport>::Channel as Channel>::Msg> {
+        Ok(self.rx.recv()?)
     }
 
     #[allow(unused_variables)]
-    fn send_msg(&self, msg: Self::Msg) -> Result<Self, Self::Error>
+    fn send_msg(
+        &self,
+        msg: <<Self as Transport>::Channel as Channel>::Msg,
+        addr: Self::Addr,
+    ) -> Result<&Self, Self::Error>
     where
         Self: Sized,
     {
-        unimplemented!()
+        Ok(self
+            .senders
+            .get(&addr)
+            .ok_or_else(|| Error::RemoteAddrNotFound(addr))?
+            .send(msg)
+            .map(|_| self)?)
     }
 }
 

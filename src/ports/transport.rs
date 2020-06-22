@@ -7,12 +7,15 @@ pub trait Transport {
     type Channel: Channel;
     type Addr;
     type Error: Into<TransportError>;
-    type Msg;
 
     fn addr(&self) -> Self::Addr;
     fn connect_to(&mut self, addr: Self::Addr) -> Result<&mut Self, Self::Error>;
-    fn msg(&mut self) -> Self::Msg;
-    fn send_msg(&self, msg: Self::Msg) -> Result<Self, Self::Error>
+    fn msg(&mut self) -> Result<<<Self as Transport>::Channel as Channel>::Msg, Self::Error>;
+    fn send_msg(
+        &self,
+        msg: <<Self as Transport>::Channel as Channel>::Msg,
+        addr: Self::Addr,
+    ) -> Result<&Self, Self::Error>
     where
         Self: Sized;
 }

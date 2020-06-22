@@ -1,3 +1,4 @@
+#![allow(clippy::pub_enum_variant_names)]
 mod app;
 pub mod transport;
 
