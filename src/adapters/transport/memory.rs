@@ -1,33 +1,34 @@
 mod addr;
+mod envelope;
 mod static_store;
 mod tx_dispenser;
 #[cfg(test)]
 mod unit_tests;
 
 use crate::{
-    app::Msg,
     error::transport::memory::{Error, Result},
-    ports::Transport,
+    ports::transport::Transport,
 };
-pub use addr::MemoryTransportAddr;
+pub use {addr::MemoryTransportAddr, envelope::MemoryTransportEnvelope, tx_dispenser::TxDispenser};
+
+use crate::ports::transport::Envelope;
 use bool_ext::BoolExt;
 use std::{
     collections::HashMap,
     sync::mpsc::{channel, Receiver, Sender},
 };
-pub use tx_dispenser::TxDispenser;
 
 #[derive(Debug)]
 pub struct MemoryTransport {
     addr: MemoryTransportAddr,
-    rx: Receiver<<Self as Transport>::Msg>,
-    senders: HashMap<MemoryTransportAddr, Sender<<Self as Transport>::Msg>>,
+    rx: Receiver<<Self as Transport>::Envelope>,
+    senders: HashMap<MemoryTransportAddr, Sender<<Self as Transport>::Envelope>>,
 }
 
 impl MemoryTransport {
     pub fn new() -> Self {
         let addr = Self::addr();
-        let (tx, rx) = Self::make_channel(addr);
+        let rx = Self::make_channel(addr);
 
         Self {
             addr,
@@ -56,15 +57,13 @@ impl MemoryTransport {
         MemoryTransportAddr::from(addr)
     }
 
-    fn make_channel(
-        addr: MemoryTransportAddr,
-    ) -> (Sender<<Self as Transport>::Msg>, Receiver<<Self as Transport>::Msg>) {
+    fn make_channel(addr: MemoryTransportAddr) -> Receiver<<Self as Transport>::Envelope> {
         let (tx, rx) = channel();
-        Self::register_sender(addr, tx.clone());
-        (tx, rx)
+        Self::register_sender(addr, tx);
+        rx
     }
 
-    fn register_sender(addr: MemoryTransportAddr, tx: Sender<<Self as Transport>::Msg>) {
+    fn register_sender(addr: MemoryTransportAddr, tx: Sender<<Self as Transport>::Envelope>) {
         static_store::SENDER_STORE
             .contains_key(&addr)
             .do_false(|| {
@@ -78,14 +77,13 @@ impl MemoryTransport {
 
 impl Transport for MemoryTransport {
     type Addr = MemoryTransportAddr;
+    type Envelope = MemoryTransportEnvelope;
     type Error = Error;
-    type Msg = Msg;
 
     fn addr(&self) -> Self::Addr {
         self.addr
     }
 
-    #[allow(unused_variables)]
     fn connect_to(&mut self, addr: Self::Addr) -> Result<&mut Self, Self::Error> {
         self.senders.contains_key(&addr).map(
             || Err(Error::AddrAlreadyConnected(addr)),
@@ -109,21 +107,23 @@ impl Transport for MemoryTransport {
         Ok(self)
     }
 
-    #[allow(unused_variables)]
-    fn rx_msg(&mut self) -> Result<<Self as Transport>::Msg> {
+    fn rx_msg(&mut self) -> Result<<Self as Transport>::Envelope> {
         Ok(self.rx.recv()?)
     }
 
-    #[allow(unused_variables)]
-    fn tx_msg(&self, msg: <Self as Transport>::Msg, addr: Self::Addr) -> Result<&Self, Self::Error>
+    fn tx_msg(
+        &self,
+        msg: <<Self as Transport>::Envelope as Envelope>::Msg,
+        dst: <Self as Transport>::Addr,
+    ) -> Result<&Self, Self::Error>
     where
         Self: Sized,
     {
         Ok(self
             .senders
-            .get(&addr)
-            .ok_or_else(|| Error::RemoteAddrNotFound(addr))?
-            .send(msg)
+            .get(&dst)
+            .ok_or_else(|| Error::RemoteAddrNotFound(dst))?
+            .send(MemoryTransportEnvelope::new(msg, self.addr()))
             .map(|_| self)?)
     }
 }

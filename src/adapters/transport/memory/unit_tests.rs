@@ -1,17 +1,16 @@
-#![allow(non_snake_case)]
+#![allow(non_snake_case, clippy::wildcard_imports)]
 use super::*;
-use crate::{app::Msg, error::transport::Result, ports::Transport};
+use crate::{app::Msg, ports::transport::Transport};
 use assert2::assert;
 
 #[test]
 fn connect_to__a_transport_can_connect_to_another_transport() {
     // Given two memory_transport instances
-    let remote_transport = MemoryTransport::new();
-    let local_transport = MemoryTransport::new();
-    let mut sut = local_transport;
+    let remote = MemoryTransport::new();
+    let mut sut = MemoryTransport::new();
 
     // When a connection is attempted
-    let res = sut.connect_to(remote_transport.addr());
+    let res = sut.connect_to(remote.addr());
 
     // Then connection is been successfully established
     assert!(res.is_ok(), "{:?}", res)
@@ -20,9 +19,9 @@ fn connect_to__a_transport_can_connect_to_another_transport() {
 #[test]
 fn send_msg__a_transport_can_send_a_message_to_another_transport() -> Result<()> {
     // Given two memory_transport instances with a `Msg` in the receiver's receive queue
-    let mut remote_txp = MemoryTransport::new();
-    let remote_addr = remote_txp.addr();
-    let mut sut = MemoryTransport::with_connection(remote_addr)?;
+    let mut remote = dbg!(MemoryTransport::new());
+    let remote_addr = remote.addr();
+    let sut = dbg!(MemoryTransport::with_connection(remote_addr)?);
 
     // When a message is read
     let res = sut.tx_msg(Msg::Hello, remote_addr);
@@ -30,7 +29,7 @@ fn send_msg__a_transport_can_send_a_message_to_another_transport() -> Result<()>
     // Then connection is been successfully established
     assert!(res.is_ok(), "{:?}", res);
     // And the `Msg` is received by the intended recipient
-    assert!(remote_txp.rx_msg() == Ok(Msg::Hello));
+    assert!(remote.rx_msg() == Ok((Msg::Hello, sut.addr())));
 
     Ok(())
 }
