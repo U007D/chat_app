@@ -19,9 +19,9 @@ fn connect_to__a_transport_can_connect_to_another_transport() {
 #[test]
 fn send_msg__a_transport_can_send_a_message_to_another_transport() -> Result<()> {
     // Given two memory_transport instances with a `Msg` in the receiver's receive queue
-    let mut remote = dbg!(MemoryTransport::new());
+    let mut remote = MemoryTransport::new();
     let remote_addr = remote.addr();
-    let sut = dbg!(MemoryTransport::with_connection(remote_addr)?);
+    let sut = MemoryTransport::with_connection(remote_addr)?;
 
     // When a message is read
     let res = sut.tx_msg(Msg::Hello, remote_addr);
@@ -29,7 +29,7 @@ fn send_msg__a_transport_can_send_a_message_to_another_transport() -> Result<()>
     // Then connection is been successfully established
     assert!(res.is_ok(), "{:?}", res);
     // And the `Msg` is received by the intended recipient
-    assert!(remote.rx_msg() == Ok((&Msg::Hello, sut.addr())));
+    assert!(remote.rx_msg() == Ok((Msg::Hello, sut.addr())));
 
     Ok(())
 }

@@ -6,11 +6,12 @@ mod tx_dispenser;
 mod unit_tests;
 
 use crate::{
-    error::transport::memory::{Error, Result},
+    error::transport::{memory::Error, Result},
     ports::transport::Transport,
 };
 pub use {addr::MemoryTransportAddr, envelope::MemoryTransportEnvelope, tx_dispenser::TxDispenser};
 
+use crate::error::transport::memory;
 use crate::ports::transport::Envelope;
 use bool_ext::BoolExt;
 use std::{
@@ -37,7 +38,7 @@ impl MemoryTransport {
         }
     }
 
-    pub fn with_connection(addr: MemoryTransportAddr) -> Result<Self, <Self as Transport>::Error> {
+    pub fn with_connection(addr: MemoryTransportAddr) -> Result<Self> {
         let mut res = Self::new();
         res.connect_to(addr)?;
         Ok(res)
@@ -78,13 +79,12 @@ impl MemoryTransport {
 impl Transport for MemoryTransport {
     type Addr = MemoryTransportAddr;
     type Envelope = MemoryTransportEnvelope;
-    type Error = Error;
 
     fn addr(&self) -> Self::Addr {
         self.addr
     }
 
-    fn connect_to(&mut self, addr: Self::Addr) -> Result<&mut Self, Self::Error> {
+    fn connect_to(&mut self, addr: Self::Addr) -> Result<&mut Self> {
         self.senders.contains_key(&addr).map(
             || Err(Error::AddrAlreadyConnected(addr)),
             || {
@@ -107,18 +107,16 @@ impl Transport for MemoryTransport {
         Ok(self)
     }
 
-    fn rx_msg(
-        &mut self,
-    ) -> Result<(&<<Self as Transport>::Envelope as Envelope>::Msg, Self::Addr)> {
-        let res = self.rx.recv()?;
-        Ok((res.msg(), res.addr()))
+    fn rx_msg(&mut self) -> Result<(<<Self as Transport>::Envelope as Envelope>::Msg, Self::Addr)> {
+        let res = self.rx.recv().map_err(memory::Error::from)?;
+        Ok(res.into())
     }
 
     fn tx_msg(
         &self,
         msg: <<Self as Transport>::Envelope as Envelope>::Msg,
         dst: <Self as Transport>::Addr,
-    ) -> Result<&Self, Self::Error>
+    ) -> Result<&Self>
     where
         Self: Sized,
     {
