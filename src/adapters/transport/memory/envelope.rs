@@ -2,7 +2,7 @@ use crate::{
     adapters::transport::memory::MemoryTransportAddr, app::Msg, ports::transport::Envelope,
 };
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MemoryTransportEnvelope {
     msg: Msg,
     sender: MemoryTransportAddr,
