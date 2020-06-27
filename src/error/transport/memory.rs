@@ -1,6 +1,6 @@
 use crate::{
     adapters::transport::memory::{MemoryTransport, MemoryTransportAddr},
-    ports::transport::Transport,
+    ports::transport::{Envelope, Transport},
 };
 use thiserror::Error;
 
@@ -26,7 +26,10 @@ pub enum Error {
     #[error(transparent)]
     RecvError(#[from] std::sync::mpsc::RecvError),
     #[error(transparent)]
-    SendError(#[from] std::sync::mpsc::SendError<<MemoryTransport as Transport>::Envelope>),
+    SendError(
+        #[from]
+        std::sync::mpsc::SendError<<<MemoryTransport as Transport>::Envelope as Envelope>::Addr>,
+    ),
     #[error("Remote Addr {} not found.", _0)]
     RemoteAddrNotFound(MemoryTransportAddr),
     #[error("Too many `MemoryTransport` instances (> {}) created.", usize::max_value())]

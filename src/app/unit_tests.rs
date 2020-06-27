@@ -14,10 +14,10 @@ fn ping__app_responds_with_pong() -> transport::Result<()> {
     let local_addr = sut.addr();
 
     // When sent a `Msg::Ping`
-    sut.tx_msg((Msg::Ping, local_addr)).unwrap();
+    sut.tx_msg(Msg::Ping, local_addr).unwrap();
 
     // Then `Msg::Pong` should be received
-    assert!(sut.rx_msg() == Ok((Msg::Pong, remote_addr)));
+    assert!(sut.rx_msg() == Ok((&Msg::Pong, remote_addr)));
 
     Ok(())
 }

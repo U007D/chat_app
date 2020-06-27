@@ -27,7 +27,7 @@ where
     pub fn run(mut self) -> Result<()> {
         loop {
             match self.transport.rx_msg().map_err(|e| e.into())? {
-                (Msg::Ping, sender) => self.transport.tx_msg((Msg::Pong, sender)),
+                (Msg::Ping, origin) => self.transport.tx_msg(Msg::Pong, origin),
                 _ => unimplemented!("App message handler: unimplemented for `Msg` received."),
             };
         }

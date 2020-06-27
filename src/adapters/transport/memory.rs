@@ -107,8 +107,11 @@ impl Transport for MemoryTransport {
         Ok(self)
     }
 
-    fn rx_msg(&mut self) -> Result<<Self as Transport>::Envelope> {
-        Ok(self.rx.recv()?)
+    fn rx_msg(
+        &mut self,
+    ) -> Result<(&<<Self as Transport>::Envelope as Envelope>::Msg, Self::Addr)> {
+        let res = self.rx.recv()?;
+        Ok((res.msg(), res.addr()))
     }
 
     fn tx_msg(
@@ -119,12 +122,11 @@ impl Transport for MemoryTransport {
     where
         Self: Sized,
     {
-        Ok(self
-            .senders
+        self.senders
             .get(&dst)
             .ok_or_else(|| Error::RemoteAddrNotFound(dst))?
-            .send(MemoryTransportEnvelope::new(msg, self.addr()))
-            .map(|_| self)?)
+            .send((msg, self.addr()).into());
+        Ok(self)
     }
 }
 

@@ -29,7 +29,7 @@ fn send_msg__a_transport_can_send_a_message_to_another_transport() -> Result<()>
     // Then connection is been successfully established
     assert!(res.is_ok(), "{:?}", res);
     // And the `Msg` is received by the intended recipient
-    assert!(remote.rx_msg() == Ok((Msg::Hello, sut.addr())));
+    assert!(remote.rx_msg() == Ok((&Msg::Hello, sut.addr())));
 
     Ok(())
 }

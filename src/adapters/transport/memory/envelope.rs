@@ -8,8 +8,15 @@ pub struct MemoryTransportEnvelope {
     sender: MemoryTransportAddr,
 }
 
-impl MemoryTransportEnvelope {
-    pub fn new(msg: <Self as Envelope>::Msg, sender: MemoryTransportAddr) -> Self {
+impl Envelope for MemoryTransportEnvelope {
+    type Addr = MemoryTransportAddr;
+    type Msg = Msg;
+}
+
+impl From<(<MemoryTransportEnvelope as Envelope>::Msg, <MemoryTransportEnvelope as Envelope>::Addr)>
+    for MemoryTransportEnvelope
+{
+    fn from((msg, sender): (<Self as Envelope>::Msg, <Self as Envelope>::Addr)) -> Self {
         Self {
             msg,
             sender,
@@ -17,21 +24,10 @@ impl MemoryTransportEnvelope {
     }
 }
 
-impl Envelope for MemoryTransportEnvelope {
-    type Addr = MemoryTransportAddr;
-    type Msg = Msg;
-
-    fn addr(&self) -> Self::Addr {
-        self.sender
-    }
-
-    fn msg(&self) -> &Self::Msg {
-        &self.msg
-    }
-}
-
-impl From<(Self::Msg, Self::Addr)> for MemoryTransportEnvelope {
-    fn from((msg, sender): (Self::Msg, Self::Addr)) -> Self {
-        Self::new(msg, sender)
+impl From<MemoryTransportEnvelope>
+    for (<MemoryTransportEnvelope as Envelope>::Msg, <MemoryTransportEnvelope as Envelope>::Addr)
+{
+    fn from(envelope: MemoryTransportEnvelope) -> Self {
+        (envelope.msg, envelope.sender)
     }
 }
