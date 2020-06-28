@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod unit_tests;
+
 use std::sync::{mpsc::Sender, Mutex, MutexGuard};
 
 // Imbues `Mutex<Sender<T>>` with `Sync`.
