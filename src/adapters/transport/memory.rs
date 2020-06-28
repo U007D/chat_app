@@ -1,19 +1,19 @@
 mod addr;
 mod envelope;
 mod static_store;
-mod tx_sharer;
 #[cfg(test)]
 mod unit_tests;
 
 use crate::{
-    error::transport::{memory::Error, Result},
+    error::transport::{memory::Error, Result as TransportResult},
     ports::transport::Transport,
 };
-pub use {addr::MemoryTransportAddr, envelope::MemoryTransportEnvelope, tx_sharer::TxSharer};
+pub use {addr::MemoryTransportAddr, envelope::MemoryTransportEnvelope};
 
 use crate::error::transport::memory;
 use crate::ports::transport::Envelope;
 use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::Mutex;
 
 #[derive(Debug)]
 pub struct MemoryTransport {
@@ -39,7 +39,7 @@ impl MemoryTransport {
 
     fn register_tx(addr: MemoryTransportAddr, tx: Sender<<Self as Transport>::Envelope>) {
         static_store::SENDER_STORE
-            .insert(addr, TxSharer::new(tx))
+            .insert(addr, Mutex::new(tx))
             .and_then::<(), _>(|_| unreachable!(Error::AddrAlreadyAdded(addr)));
     }
 }
@@ -52,7 +52,9 @@ impl Transport for MemoryTransport {
         self.addr
     }
 
-    fn rx_msg(&self) -> Result<(<<Self as Transport>::Envelope as Envelope>::Msg, Self::Addr)> {
+    fn rx_msg(
+        &self,
+    ) -> TransportResult<(<<Self as Transport>::Envelope as Envelope>::Msg, Self::Addr)> {
         let res = self.rx.recv().map_err(memory::Error::from)?;
         Ok(res.into())
     }
@@ -62,17 +64,18 @@ impl Transport for MemoryTransport {
     fn tx_msg(
         &self,
         msg: <<Self as Transport>::Envelope as Envelope>::Msg,
-        dst: <Self as Transport>::Addr,
-    ) -> Result<&Self>
+        dst_addr: <Self as Transport>::Addr,
+    ) -> TransportResult<&Self>
     where
         Self: Sized,
     {
         static_store::SENDER_STORE
-            .get(&dst)
-            .ok_or_else(|| Error::RemoteAddrNotFound(dst))?
+            .get(&dst_addr)
+            .ok_or_else(|| Error::RemoteAddrNotFound(dst_addr))?
             .lock()
+            .map_err(Error::from)?
             .send((msg, self.addr()).into())
-            .map_err(memory::Error::from)?;
+            .map_err(Error::from)?;
         Ok(self)
     }
 }
